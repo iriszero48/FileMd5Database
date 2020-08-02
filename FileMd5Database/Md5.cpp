@@ -1,5 +1,7 @@
 #include "Md5.h"
 
+#include <cstdlib>
+
 // see https://github.com/php/php-src/blob/master/ext/standard/md5.c
 
 #define F(x, y, z)			((z) ^ ((x) & ((y) ^ (z))))
