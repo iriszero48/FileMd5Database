@@ -1,6 +1,6 @@
 #include "Md5.h"
 
-#include <cstdlib>
+#include <cstring>
 
 // see https://github.com/php/php-src/blob/master/ext/standard/md5.c
 
