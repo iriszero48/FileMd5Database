@@ -1,7 +1,5 @@
 #include "FileMd5DatabaseSerialization.h"
 
-#include <fstream>
-
 #define SerializationText Serialization<boost::archive::text_oarchive>
 #define DeserializationText Deserialization<boost::archive::text_iarchive>
 
