@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
+set(Boost_USE_STATIC_LIBS ON)
+
 find_package(OpenMP REQUIRED)
 find_package(Boost COMPONENTS system locale filesystem serialization)
 
