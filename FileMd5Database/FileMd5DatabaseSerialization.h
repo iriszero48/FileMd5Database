@@ -1,7 +1,5 @@
 #pragma once
 
-#include "FileMd5Database.h"
-
 #include <fstream>
 
 #include <boost/serialization/map.hpp>
@@ -11,7 +9,8 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 
-#include "Log.h"
+#include "Unified.h"
+#include "FileMd5Database.h"
 #include "TupleSerialization.h"
 
 using oDefaultFormat = boost::archive::binary_oarchive;

@@ -4,13 +4,13 @@
 
 class CsvFile
 {
-	std::ofstream fs_;
-	bool is_first_;
-	const std::string separator_;
-	const std::string escape_seq_;
-	const std::string special_chars_;
+	std::ofstream fs;
+	bool isFirst;
+	const std::string separator;
+	const std::string escapeSeq;
+	const std::string specialChars;
 public:
-	explicit CsvFile(const std::string filename, const std::string separator = ";");
+	explicit CsvFile(const std::string& filename, std::string separator = ";");
 
 	CsvFile() = delete;
 
@@ -18,7 +18,7 @@ public:
 
 	void Flush();
 
-	void Endrow();
+	void EndRow();
 
 	CsvFile& operator << (CsvFile& (*val)(CsvFile&));
 
@@ -32,7 +32,7 @@ public:
 		return Write(val);
 	}
 
-	static CsvFile& Endrow(CsvFile& file);
+	static CsvFile& EndRow(CsvFile& file);
 
 	static CsvFile& Flush(CsvFile& file);
 
@@ -40,17 +40,17 @@ private:
 	template<typename T>
 	CsvFile& Write(const T& val)
 	{
-		if (!is_first_)
+		if (!isFirst)
 		{
-			fs_ << separator_;
+			fs << separator;
 		}
 		else
 		{
-			is_first_ = false;
+			isFirst = false;
 		}
-		fs_ << val;
+		fs << val;
 		return *this;
 	}
 
-	std::string Escape(const std::string& val);
+	[[nodiscard]] std::string Escape(const std::string& val) const;
 };

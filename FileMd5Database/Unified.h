@@ -2,6 +2,7 @@
 
 #include <cstdio>
 #include <string>
+#include <cinttypes>
 
 #if (defined _WIN32 || defined _WIN64)
 
@@ -30,3 +31,11 @@
 #endif
 
 #define FileOpen(path, mode) FileOpenFunc(path, FormatString"" mode)
+
+#define _ToString(x) #x
+#define ToString(x) _ToString(x)
+
+#define Line ToString(__LINE__)
+
+#define Log(...) LogFunc(FormatString"<%s,<" StringFormatChar ",%" PRIu64 "," StringFormatChar ">>\n", __VA_ARGS__)
+#define LogErr(path, message) LogErrFunc(stderr, FormatString"    %s(" Line "): " StringFormatChar "\n", path, message)

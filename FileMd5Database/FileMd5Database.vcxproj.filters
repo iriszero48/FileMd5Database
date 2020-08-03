@@ -47,13 +47,7 @@
     <ClInclude Include="Md5.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Path.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="File.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Log.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="FileMd5Database.h">
@@ -68,5 +62,11 @@
     <ClInclude Include="String.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="Unified.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="CMakeLists.txt" />
   </ItemGroup>
 </Project>

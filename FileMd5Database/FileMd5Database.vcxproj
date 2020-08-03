@@ -174,11 +174,13 @@
     <ClInclude Include="File.h" />
     <ClInclude Include="FileMd5Database.h" />
     <ClInclude Include="FileMd5DatabaseSerialization.h" />
-    <ClInclude Include="Log.h" />
     <ClInclude Include="Md5.h" />
-    <ClInclude Include="Path.h" />
+    <ClInclude Include="Unified.h" />
     <ClInclude Include="String.h" />
     <ClInclude Include="TupleSerialization.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="CMakeLists.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

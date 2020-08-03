@@ -1,15 +1,15 @@
+#include "FileMd5Database.h"
+
 #include <deque>
 #include <regex>
 
 #include <omp.h>
 
-#include "FileMd5Database.h"
-#include "Path.h"
 #include "Md5.h"
-#include "Log.h"
 #include "File.h"
 #include "CSV.h"
 #include "String.h"
+#include "Unified.h"
 
 inline void FileMd5DatabaseAdd(const std::string& deviceName, const std::filesystem::path& file, Database& fmd, const bool logOutput)
 {
@@ -154,7 +154,7 @@ void Export(Database& fmd, const std::string& path, const std::string& format)
 				<< std::get<0>(pair.second)
 				<< std::to_string(std::get<1>(pair.second))
 				<< std::get<2>(pair.second)
-				<< CsvFile::Endrow;
+				<< CsvFile::EndRow;
 		}
 	}
 }

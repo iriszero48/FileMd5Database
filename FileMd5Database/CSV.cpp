@@ -1,32 +1,33 @@
 #include "CSV.h"
 
 #include <sstream>
+#include <utility>
 
-CsvFile::CsvFile(const std::string filename, const std::string separator)
-	: is_first_(true),
-	separator_(separator),
-	escape_seq_("\""),
-	special_chars_("\"")
+CsvFile::CsvFile(const std::string& filename, std::string separator)
+	: isFirst(true),
+	separator(std::move(separator)),
+	escapeSeq("\""),
+	specialChars("\"")
 {
-	fs_.exceptions(std::ios::failbit | std::ios::badbit);
-	fs_.open(filename);
+	fs.exceptions(std::ios::failbit | std::ios::badbit);
+	fs.open(filename);
 }
 
 CsvFile::~CsvFile()
 {
 	Flush();
-	fs_.close();
+	fs.close();
 }
 
 void CsvFile::Flush()
 {
-	fs_.flush();
+	fs.flush();
 }
 
-void CsvFile::Endrow()
+void CsvFile::EndRow()
 {
-	fs_ << "\n";
-	is_first_ = true;
+	fs << "\n";
+	isFirst = true;
 }
 
 CsvFile& CsvFile::operator<<(CsvFile&(* val)(CsvFile&))
@@ -44,9 +45,9 @@ CsvFile& CsvFile::operator<<(const std::string& val)
 	return Write(Escape(val));
 }
 
-CsvFile& CsvFile::Endrow(CsvFile& file)
+CsvFile& CsvFile::EndRow(CsvFile& file)
 {
-	file.Endrow();
+	file.EndRow();
 	return file;
 }
 
@@ -56,15 +57,15 @@ CsvFile& CsvFile::Flush(CsvFile& file)
 	return file;
 }
 
-std::string CsvFile::Escape(const std::string& val)
+std::string CsvFile::Escape(const std::string& val) const
 {
 	std::ostringstream result;
 	result << '"';
 	std::string::size_type to, from = 0u, len = val.length();
 	while (from < len &&
-		std::string::npos != (to = val.find_first_of(special_chars_, from)))
+		std::string::npos != (to = val.find_first_of(specialChars, from)))
 	{
-		result << val.substr(from, to - from) << escape_seq_ << val[to];
+		result << val.substr(from, to - from) << escapeSeq << val[to];
 		from = to + 1;
 	}
 	result << val.substr(from) << '"';

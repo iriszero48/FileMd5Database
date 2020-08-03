@@ -5,7 +5,6 @@
 
 using K = std::string;
 using V = std::tuple<std::string, uint64_t, std::string>;
-using KV = std::pair<K, V>;
 using Database = std::map<K, V>;
 
 inline void FileMd5DatabaseAdd(const std::string& deviceName, const std::filesystem::path& file, Database& fmd, const bool logOutput = true);

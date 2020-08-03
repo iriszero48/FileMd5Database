@@ -1,10 +1,9 @@
+#include "File.h"
+
 #include <boost/filesystem.hpp>
 #include <boost/locale.hpp>
 
 #include <iomanip>
-
-#include "Path.h"
-#include "Log.h"
 
 std::string FileLastModified(const NativeStringType& path)
 {

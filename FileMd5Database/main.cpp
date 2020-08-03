@@ -1,20 +1,5 @@
-//#include <cstdint>
-//#include <cinttypes>
-//#include <cstdio>
-//#include <cstdlib>
-//#include <cstring>
-//#include <string>
-//#include <map>
-//#include <tuple>
-//#include <fstream>
-//#include <deque>
-//#include <filesystem>
-//
-//#include <boost/locale.hpp>
-//#include <boost/filesystem.hpp>
-
+#include "Unified.h"
 #include "FileMd5Database.h"
-#include "Log.h"
 #include "FileMd5DatabaseSerialization.h"
 
 static Database FileMd5Database{};

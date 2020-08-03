@@ -1,11 +1,5 @@
 #include "FileMd5DatabaseSerialization.h"
 
-#define SerializationText Serialization<boost::archive::text_oarchive>
-#define DeserializationText Deserialization<boost::archive::text_iarchive>
-
-#define SerializationBinary Serialization<boost::archive::binary_oarchive>
-#define DeserializationBinary Deserialization<boost::archive::binary_iarchive>
-
 void Serialization(Database& fmd, const std::string& databasePath, const std::string& format)
 {
 	if (format == "text")
