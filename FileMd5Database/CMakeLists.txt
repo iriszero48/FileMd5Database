@@ -6,17 +6,18 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
-set(Boost_USE_STATIC_LIBS ON)
+if (CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0 AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 8.0)
+    link_libraries(stdc++fs)
+    set(Boost_USE_STATIC_LIBS OFF)
+else ()
+    set(Boost_USE_STATIC_LIBS ON)
+endif()
 
 find_package(OpenMP REQUIRED)
 find_package(Boost COMPONENTS system locale filesystem serialization)
 
 if(Boost_FOUND AND OpenMP_CXX_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
-
-    if (CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0 AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 8.0)
-        link_libraries(stdc++fs)
-    endif()
 
     aux_source_directory(. srcs)
     add_executable(fmd ${srcs})
