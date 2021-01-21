@@ -1,5 +1,6 @@
 #pragma once
 
-#include "Unified.h"
+#include <string>
+#include <filesystem>
 
-std::string Md5File(const NativeStringType& path);
+std::string Md5File(const std::filesystem::path& path);

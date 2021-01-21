@@ -1,6 +1,7 @@
 #include "Md5.h"
 
 #include <cstring>
+#include <fstream>
 
 // see https://github.com/php/php-src/blob/master/ext/standard/md5.c
 
@@ -238,28 +239,43 @@ inline void Md5MakeDigestEx(char* md5Str, const unsigned char* digest, const int
 	md5Str[len * 2] = 0;
 }
 
-std::string Md5File(const NativeStringType& path)
+std::string Md5File(const std::filesystem::path& path)
 {
 	char hashStr[33] = { 0 };
-	unsigned char buf[4096] = { 0 };
+	char buf[4096] = { 0 };
 	unsigned char digest[16] = { 0 };
 	Md5Ctx context;
-	size_t n;
-
-	const auto stream = FileOpen(path.c_str(), "rb");
-	if (!stream) return hashStr;
-
-	Md5Init(&context);
-	while ((n = fread(buf, sizeof(char), 4096, stream)) > 0) Md5Update(&context, buf, n);
-	if (!feof(stream))
+	std::ifstream stream{};
+	
+	try
 	{
-		fclose(stream);
+		stream.open(path, std::ios::in | std::ios::binary);
+		
+		Md5Init(&context);
+
+		while (true)
+		{
+			stream.read(buf, 4096);
+			const auto count = stream.gcount();
+			if (count == 0)
+			{
+				break;
+			}
+			Md5Update(&context, buf, count);
+		}
+		if (!stream.eof())
+		{
+			throw std::runtime_error("EOF");
+		}
+	}
+	catch (const std::exception&)
+	{
+		stream.close();
 		Md5Final(digest, &context);
 		return hashStr;
 	}
-	fclose(stream);
+	stream.close();
 	Md5Final(digest, &context);
 	Md5MakeDigestEx(hashStr, digest, 16);
-
 	return hashStr;
 }

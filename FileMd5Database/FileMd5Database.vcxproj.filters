@@ -3,7 +3,7 @@
   <ItemGroup>
     <Filter Include="源文件">
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;c++;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
     <Filter Include="头文件">
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
@@ -18,51 +18,60 @@
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Md5.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="File.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="FileMd5Database.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="CSV.cpp">
+    <ClCompile Include="Arguments.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="FileMd5DatabaseSerialization.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="String.cpp">
+    <ClCompile Include="FileMd5Database.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Md5.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CSV.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Time.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Convert.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="TupleSerialization.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Md5.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="File.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="FileMd5Database.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="CSV.h">
+    <ClInclude Include="Arguments.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="FileMd5DatabaseSerialization.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="FileMd5Database.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Bit.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Md5.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
     <ClInclude Include="String.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Unified.h">
+    <ClInclude Include="Time.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Macro.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CSV.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Thread.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Convert.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

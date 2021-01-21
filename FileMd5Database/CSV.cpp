@@ -71,8 +71,3 @@ std::string CsvFile::Escape(const std::string& val) const
 	result << val.substr(from) << '"';
 	return result.str();
 }
-
-
-
-
-
