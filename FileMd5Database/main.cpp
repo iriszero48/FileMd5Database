@@ -89,6 +89,27 @@ int main(int argc, char* argv[])
 		"--root",
 		"root path"
 	};
+	ArgumentsParse::Argument<std::vector<std::string>> skip
+	{
+		"--skip",
+		"skip file(file1;file2;...)",
+		decltype(skip)::ValueType{},
+		ArgumentsFunc(skip)
+		{
+			const auto vf = std::string(value) + ";";
+			const std::regex re(R"([^;]+?;)");
+			auto begin = std::sregex_iterator(vf.begin(), vf.end(), re);
+			const auto end = std::sregex_iterator();
+			std::vector<std::string> files{};
+			for (auto i = begin; i != end; ++i)
+			{
+				const auto match = i->str();
+				const auto f = match.substr(0, match.length() - 1);
+				files.push_back(f);
+			}
+			return { files, {} };
+		}
+	};
 	ArgumentsParse::Argument<std::filesystem::path> filePath
 	{
 		"--file",
@@ -222,6 +243,7 @@ int main(int argc, char* argv[])
 	args.Add(dbPathArg);
 	args.Add(deviceName);
 	args.Add(rootPath);
+	args.Add(skip);
 	args.Add(filePath);
 	args.Add(matchMethod);
 	args.Add(queryData);
@@ -232,8 +254,8 @@ int main(int argc, char* argv[])
 	args.Add(paths);
 	args.Add(exportFormat);
 	args.Add(exportPath);
-	//args.Add(alterType);
-	//args.Add(value);
+	args.Add(alterType);
+	args.Add(value);
 	args.Add(logPath);
 	args.Add(logLevel);
 	args.Add(consoleLog);
@@ -266,10 +288,16 @@ int main(int argc, char* argv[])
 							{
 								return false;
 							}
-							for (const auto& [k,v] : ops)
+							std::vector<std::string> out{};
+							for (const auto& [k, _] : ops)
+							{
+								out.push_back(k);
+							}
+							std::sort(out.begin(), out.end());
+							for (const auto& k : out)
 							{
 								std::cout << k << " ";
-								v({}, true);
+								ops.at(k)({}, true);
 								std::cout << "\n";
 							}
 							return false;
@@ -339,6 +367,28 @@ int main(int argc, char* argv[])
 							Interactive(res);
 							return false;
 						} },
+						{ "!regex",[&](const std::string& args = {}, const bool help = false)
+						{
+							if (help)
+							{
+								std::cout << DataDesc() << " keyword";
+								return false;
+							}
+							const auto sp = args.find(' ');
+							const auto by = *ToData(args.substr(0, sp));
+							std::vector<ModelRef> tmp(fmd.size());
+							if (by == Data::FileModificationTime) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(),[&, re = std::regex(args.substr(sp + 1))](const ModelRef& model) { return !std::regex_match(std::string(model.Time), re) ? model : ModelRef(); });
+							else if (by == Data::Md5) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(),[&, re = std::regex(args.substr(sp + 1))](const ModelRef& model) { return !std::regex_match(std::string(model.Md5), re) ? model : ModelRef(); });
+							else if (by == Data::Path) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(),[&, re = std::regex(args.substr(sp + 1))](const ModelRef& model) { return !std::regex_match(std::string(model.Path), re) ? model : ModelRef(); });
+							else if (by == Data::Size) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(),[&, re = std::regex(args.substr(sp + 1))](const ModelRef& model) { return !std::regex_match(Convert::ToString(model.Size), re) ? model : ModelRef(); });
+							const auto count = std::count_if(std::execution::par_unseq, tmp.begin(), tmp.end(), [](const ModelRef& model) { return model.Path.length() != 0; });
+							std::vector<ModelRef> res(count);
+							std::copy_if(std::execution::par_unseq, tmp.begin(), tmp.end(), res.begin(), [](const ModelRef& model) { return model.Path.length() != 0; });
+							tmp.clear();
+							tmp.shrink_to_fit();
+							Interactive(res);
+							return false;
+						} },
 						{ "startwith",[&](const std::string& args = {}, const bool help = false)
 						{
 							if (help)
@@ -354,6 +404,29 @@ int main(int argc, char* argv[])
 							else if (by == Data::Md5) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return std::equal(kw.begin(), kw.end(), model.Md5.begin()) ? model : ModelRef(); });
 							else if (by == Data::Path) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return std::equal(kw.begin(), kw.end(), model.Path.begin()) ? model : ModelRef(); });
 							else if (by == Data::Size) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { const auto tmp = Convert::ToString(model.Size); return std::equal(kw.begin(), kw.end(), tmp.begin()) ? model : ModelRef(); });
+							const auto count = std::count_if(std::execution::par_unseq, tmp.begin(), tmp.end(), [](const ModelRef& model) { return model.Path.length() != 0; });
+							std::vector<ModelRef> res(count);
+							std::copy_if(std::execution::par_unseq, tmp.begin(), tmp.end(), res.begin(), [](const ModelRef& model) { return model.Path.length() != 0; });
+							tmp.clear();
+							tmp.shrink_to_fit();
+							Interactive(res);
+							return false;
+						} },
+						{ "!startwith",[&](const std::string& args = {}, const bool help = false)
+						{
+							if (help)
+							{
+								std::cout << DataDesc() << " keyword";
+								return false;
+							}
+							const auto sp = args.find(' ');
+							const auto by = *ToData(args.substr(0, sp));
+							const auto kw = args.substr(sp + 1);
+							std::vector<ModelRef> tmp(fmd.size());
+							if (by == Data::FileModificationTime) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return !std::equal(kw.begin(), kw.end(), model.Time.begin()) ? model : ModelRef(); });
+							else if (by == Data::Md5) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return !std::equal(kw.begin(), kw.end(), model.Md5.begin()) ? model : ModelRef(); });
+							else if (by == Data::Path) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return !std::equal(kw.begin(), kw.end(), model.Path.begin()) ? model : ModelRef(); });
+							else if (by == Data::Size) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { const auto tmp = Convert::ToString(model.Size); return !std::equal(kw.begin(), kw.end(), tmp.begin()) ? model : ModelRef(); });
 							const auto count = std::count_if(std::execution::par_unseq, tmp.begin(), tmp.end(), [](const ModelRef& model) { return model.Path.length() != 0; });
 							std::vector<ModelRef> res(count);
 							std::copy_if(std::execution::par_unseq, tmp.begin(), tmp.end(), res.begin(), [](const ModelRef& model) { return model.Path.length() != 0; });
@@ -385,6 +458,29 @@ int main(int argc, char* argv[])
 							Interactive(res);
 							return false;
 						} },
+						{ "!contain",[&](const std::string& args = {}, const bool help = false)
+						{
+							if (help)
+							{
+								std::cout << DataDesc() << " keyword";
+								return false;
+							}
+							const auto sp = args.find(' ');
+							const auto by = *ToData(args.substr(0, sp));
+							const auto kw = args.substr(sp + 1);
+							std::vector<ModelRef> tmp(fmd.size());
+							if (by == Data::FileModificationTime) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return std::search(model.Time.begin(), model.Time.end(), std::boyer_moore_horspool_searcher(kw.begin(), kw.end())) == model.Time.end() ? model : ModelRef(); });
+							else if (by == Data::Md5) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return std::search(model.Md5.begin(), model.Md5.end(), std::boyer_moore_horspool_searcher(kw.begin(), kw.end())) == model.Md5.end() ? model : ModelRef(); });
+							else if (by == Data::Path) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return std::search(model.Path.begin(), model.Path.end(), std::boyer_moore_horspool_searcher(kw.begin(), kw.end())) == model.Path.end() ? model : ModelRef(); });
+							else if (by == Data::Size) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { const auto tmp = Convert::ToString(model.Size); return std::search(tmp.begin(), tmp.end(), std::boyer_moore_horspool_searcher(kw.begin(), kw.end())) == tmp.end() ? model : ModelRef(); });
+							const auto count = std::count_if(std::execution::par_unseq, tmp.begin(), tmp.end(), [](const ModelRef& model) { return model.Path.length() != 0; });
+							std::vector<ModelRef> res(count);
+							std::copy_if(std::execution::par_unseq, tmp.begin(), tmp.end(), res.begin(), [](const ModelRef& model) { return model.Path.length() != 0; });
+							tmp.clear();
+							tmp.shrink_to_fit();
+							Interactive(res);
+							return false;
+						} },
 						{ "eq",[&](const std::string& args = {}, const bool help = false)
 						{
 							if (help)
@@ -400,6 +496,29 @@ int main(int argc, char* argv[])
 							else if (by == Data::Md5) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return std::equal(model.Md5.begin(), model.Md5.end(), kw.begin(), kw.end()) ? model : ModelRef(); });
 							else if (by == Data::Path) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return std::equal(model.Path.begin(), model.Path.end(), kw.begin(), kw.end()) ? model : ModelRef(); });
 							else if (by == Data::Size) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(),[&, v = Convert::ToUint64(kw)](const ModelRef& model) { return v == model.Size ? model : ModelRef(); });
+							const auto count = std::count_if(std::execution::par_unseq, tmp.begin(), tmp.end(), [](const ModelRef& model) { return model.Path.length() != 0; });
+							std::vector<ModelRef> res(count);
+							std::copy_if(std::execution::par_unseq,tmp.begin(), tmp.end(), res.begin(), [](const ModelRef& model) { return model.Path.length() != 0; });
+							tmp.clear();
+							tmp.shrink_to_fit();
+							Interactive(res);
+							return false;
+						} },
+						{ "!eq",[&](const std::string& args = {}, const bool help = false)
+						{
+							if (help)
+							{
+								std::cout << DataDesc() << " keyword";
+								return false;
+							}
+							const auto sp = args.find(' ');
+							const auto by = *ToData(args.substr(0, sp));
+							const auto kw = args.substr(sp + 1);
+							std::vector<ModelRef> tmp(fmd.size());
+							if (by == Data::FileModificationTime) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return !std::equal(model.Time.begin(), model.Time.end(), kw.begin(), kw.end()) ? model : ModelRef(); });
+							else if (by == Data::Md5) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return !std::equal(model.Md5.begin(), model.Md5.end(), kw.begin(), kw.end()) ? model : ModelRef(); });
+							else if (by == Data::Path) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return !std::equal(model.Path.begin(), model.Path.end(), kw.begin(), kw.end()) ? model : ModelRef(); });
+							else if (by == Data::Size) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(),[&, v = Convert::ToUint64(kw)](const ModelRef& model) { return v != model.Size ? model : ModelRef(); });
 							const auto count = std::count_if(std::execution::par_unseq, tmp.begin(), tmp.end(), [](const ModelRef& model) { return model.Path.length() != 0; });
 							std::vector<ModelRef> res(count);
 							std::copy_if(std::execution::par_unseq,tmp.begin(), tmp.end(), res.begin(), [](const ModelRef& model) { return model.Path.length() != 0; });
@@ -452,6 +571,15 @@ int main(int argc, char* argv[])
 							tmp.clear();
 							tmp.shrink_to_fit();
 							Interactive(res);
+							return false;
+						} },
+						{ "maxlength",[&](const std::string& args = {}, const bool help = false)
+						{
+							if (help)
+							{
+								return false;
+							}
+							puts(Convert::ToString(std::max_element(std::execution::par_unseq, fmd.begin(), fmd.end(), [](const ModelRef& a, const ModelRef& b) { return std::less<>()(a.Path.length(), b.Path.length()); })->Path.length()).c_str());
 							return false;
 						} },
 						{ "skip",[&](const std::string& args = {}, const bool help = false)
@@ -575,10 +703,10 @@ int main(int argc, char* argv[])
 		
 		std::unordered_map<DbOperator, std::function<void()>>
 		{
-			{ DbOperator::Build, [databaseFilePath, args, deviceName, rootPath]()
+			{ DbOperator::Build, [databaseFilePath, args, deviceName, rootPath, skip]()
 			{
 				if (exists(databaseFilePath)) Deserialization(FileMd5Database, databaseFilePath);
-				FileMd5DatabaseBuilder(ArgumentsValue(deviceName), ArgumentsValue(rootPath), FileMd5Database);
+				FileMd5DatabaseBuilder(ArgumentsValue(deviceName), ArgumentsValue(rootPath), FileMd5Database, ArgumentsValue(skip));
 				Serialization(FileMd5Database, databaseFilePath);
 			} },
 			{ DbOperator::Add, [databaseFilePath, args, deviceName, filePath]()
@@ -633,18 +761,20 @@ int main(int argc, char* argv[])
 					{
 						for (const auto& [k, v] : fmd)
 						{
-							FileMd5Database[newValue + ":" + k.substr(k.find(":") + 1)] = v;
+							auto nk = newValue;
+							String::StringCombine(nk, ":", k.substr(k.find(':') + 1));
+							FileMd5Database[nk] = v;
 						}
 					} },
 					{ AlterType::DriveLetter, [&]()
 					{
 						for (const auto& [k, v] : fmd)
-					{
-						auto newPath = k;
-						newPath[k.find(":") + 1] = newValue[0];
-						FileMd5Database[newPath] = v;
-					}
-					} },
+						{
+							auto newPath = k;
+							newPath[k.find(':') + 1] = newValue[0];
+							FileMd5Database[newPath] = v;
+						}
+					} }
 				}.at(ArgumentsValue(alterType))();
 				Serialization(FileMd5Database, databaseFilePath);
 			} },
@@ -662,6 +792,11 @@ Query:
     --data --keyword --limit --method --sort -p --desc
 Concat:
     --paths -p
+Export:
+    --exoprtFormat --exportPath -p
+Alter:
+    --alterType --value -p
+
 Log:
     --disableconsolelog --log --loglevel
 

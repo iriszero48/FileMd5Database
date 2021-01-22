@@ -5,7 +5,11 @@
 #include <sstream>
 #include <queue>
 #include <execution>
+#include <iostream>
 
+
+
+#include "Convert.h"
 #include "CSV.h"
 #include "Md5.h"
 #include "String.h"
@@ -157,7 +161,7 @@ inline void FileMd5DatabaseAdd(const std::string& deviceName, const std::filesys
 	}
 }
 
-void FileMd5DatabaseBuilder(const std::string& deviceName, const std::filesystem::path& path, Database& fmd)
+void FileMd5DatabaseBuilder(const std::string& deviceName, const std::filesystem::path& path, Database& fmd, std::vector<std::string> skips)
 {
 	std::error_code errorCode;
 	const std::error_code nonErrorCode;
@@ -182,6 +186,10 @@ void FileMd5DatabaseBuilder(const std::string& deviceName, const std::filesystem
 				}
 				if (file->is_regular_file())
 				{
+					if (std::find(skips.begin(), skips.end(), file->path().u8string()) != skips.end())
+					{
+						continue;
+					}
 					FileMd5DatabaseAdd(deviceName, file->path(), fmd);
 				}
 				else if (file->is_directory())
@@ -266,28 +274,33 @@ void FileMd5DatabaseQuery(const std::vector<Model>& fmdRaw, const MatchMethod& m
 	else if (sortBy == Data::Md5) QueryDataBranch(StringCmp(Md5))
 	else if (sortBy == Data::Path) QueryDataBranch(StringCmp(Path))
 	else if (sortBy == Data::Size) QueryDataBranch(IntCmp(Size))
-
-	for (auto& model : res)
+	
+	std::vector<ModelStr> out{};
+	std::for_each(res.begin(), res.end(), [&, i = static_cast<uint64_t>(0)](const ModelRef& model) mutable
 	{
-		try
+		if (i < limit)
 		{
-			model.Path = std::filesystem::u8path(model.Path).string();
+			++i;
+			ModelStr mod;
+			try
+			{
+				mod.Path = std::filesystem::u8path(model.Path).string();
+			}
+			catch (...)
+			{
+				mod.Path = model.Path;
+			}
+			mod.Md5 = model.Md5;
+			mod.Size = Convert::ToString(model.Size);
+			mod.Time = model.Time;
+			out.emplace_back(mod);
 		}
-		catch (...)
-		{
-
-		}
-	}
-	const auto pathLen = std::max_element(res.begin(), res.end(), [](const ModelRef& a, const ModelRef& b) { return std::less<>()(a.Path.length(), b.Path.length()); })->Path.length();
-	std::vector<uint64_t> sizeLens{};
-	std::transform(res.begin(), res.end(), std::back_inserter(sizeLens), [](const ModelRef& x) { return std::to_string(x.Size).length(); });
-	const auto sizeLen = *std::max_element(sizeLens.begin(), sizeLens.end());
-	for (const auto& model : res)
+	});
+	const auto maxPathLen = std::max_element(out.begin(), out.end(), [](const ModelStr& a, const ModelStr& b) { return std::less<>()(a.Path.length(), b.Path.length()); })->Path.length();
+	const auto maxSizeLen = std::max_element(out.begin(), out.end(), [](const ModelStr& a, const ModelStr& b) { return std::less<>()(a.Size.length(), b.Size.length()); })->Size.length();
+	for (const auto& [p, m, s, t] : out)
 	{
-		const auto sizeStr = std::to_string(model.Size);
-		std::string msg{};
-		String::StringCombine(msg, model.Path, std::string(pathLen - model.Path.length(), ' '), " | ", model.Md5, " | ", std::string(sizeLen - sizeStr.length(), ' '), sizeStr, " | ", model.Time);
-		puts(msg.c_str());
+		std::cout << p << std::string(maxPathLen - p.length(), ' ') << " | " << (m.empty() ? std::string(32, ' ') : m) << " | " << std::string(maxSizeLen - s.length(), ' ') << s << " | " << (t.empty() ? std::string(19, ' ') : t) << "\n";
 	}
 }
 

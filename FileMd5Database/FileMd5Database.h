@@ -87,7 +87,7 @@ void FileMd5DatabaseEnd();
 
 inline void FileMd5DatabaseAdd(const std::string& deviceName, const std::filesystem::path& file, Database& fmd);
 
-void FileMd5DatabaseBuilder(const std::string& deviceName, const std::filesystem::path& path, Database& fmd);
+void FileMd5DatabaseBuilder(const std::string& deviceName, const std::filesystem::path& path, Database& fmd, std::vector<std::string> skips);
 
 void FileMd5DatabaseQuery(const std::vector<Model>& fmdRaw,
 	const MatchMethod& matchMethod,
