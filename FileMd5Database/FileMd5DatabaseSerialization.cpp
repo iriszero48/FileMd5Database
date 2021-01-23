@@ -20,6 +20,9 @@ void Serialization(const Database& fmd, const std::filesystem::path& databasePat
 {
 	remove(databasePath);
 	std::ofstream fs(databasePath, std::ios::binary | std::ios::out);
+	const auto fsBufSize = 4096 * 1024;
+	const auto fsBuf = new char[fsBufSize];
+	fs.rdbuf()->pubsetbuf(fsBuf, fsBufSize);
 	char nil[32]{ 0 };
 	for (const auto& [path,v] : fmd)
 	{
@@ -49,6 +52,9 @@ template<typename T = Database>
 void DeserializationImpl(T& fmd, const std::filesystem::path& databasePath)
 {
 	std::ifstream fs(databasePath, std::ios::binary | std::ios::in);
+	const auto fsBufSize = 4096 * 1024;
+	const auto fsBuf = new char[fsBufSize];
+	fs.rdbuf()->pubsetbuf(fsBuf, fsBufSize);
 	Uint64Bytes uint64Buf{ 0 };
 	constexpr auto md5Len = 32;
 	constexpr auto sizeLen = 8;
