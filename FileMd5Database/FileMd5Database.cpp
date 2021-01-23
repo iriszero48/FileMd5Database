@@ -148,6 +148,7 @@ inline void FileMd5DatabaseAdd(const std::string& deviceName, const std::filesys
 			LogErr(file, e.what());
 			size = 0;
 		}
+		if (Log.Level >= LogLevel::Debug) Log.Write<LogLevel::Debug>("-> ", std::to_string(size));
 		if (size == 0)
 		{
 			md5 = "";
@@ -157,7 +158,6 @@ inline void FileMd5DatabaseAdd(const std::string& deviceName, const std::filesys
 			md5 = Md5File(fixPath);
 		}
 		if (Log.Level >= LogLevel::Debug) Log.Write<LogLevel::Debug>("-> ", md5);
-		if (Log.Level >= LogLevel::Debug) Log.Write<LogLevel::Debug>("-> ", std::to_string(size));
 		const auto modificationTime = FileLastModified(fixPath);
 		if (Log.Level >= LogLevel::Debug) Log.Write<LogLevel::Debug>("-> ", modificationTime);
 		fmd[fullPath] = V(md5, size, modificationTime);

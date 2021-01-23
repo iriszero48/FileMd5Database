@@ -241,7 +241,7 @@ inline void Md5MakeDigestEx(char* md5Str, const unsigned char* digest, const int
 
 std::string Md5File(const std::filesystem::path& path)
 {
-	const auto fsBufSize = 4096 * 1024;
+	const auto fsBufSize = 1024 * 1024;
 	const auto fsBuf = new char[fsBufSize];
 	char hashStr[33] = { 0 };
 	char buf[4096] = { 0 };

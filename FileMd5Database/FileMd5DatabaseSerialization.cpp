@@ -20,8 +20,8 @@ void Serialization(const Database& fmd, const std::filesystem::path& databasePat
 {
 	remove(databasePath);
 	std::ofstream fs(databasePath, std::ios::binary | std::ios::out);
-	const auto fsBufSize = 4096 * 1024;
-	const auto fsBuf = new char[fsBufSize];
+	const auto fsBufSize = 1024 * 1024;
+	auto* const fsBuf = new char[fsBufSize];
 	fs.rdbuf()->pubsetbuf(fsBuf, fsBufSize);
 	char nil[32]{ 0 };
 	for (const auto& [path,v] : fmd)
@@ -41,6 +41,7 @@ void Serialization(const Database& fmd, const std::filesystem::path& databasePat
 		fs.write(date.empty() ? nil : date.c_str(), 19);
 	}
 	fs.close();
+	delete[] fsBuf;
 }
 
 static char NilStrData[] = "";
@@ -52,8 +53,8 @@ template<typename T = Database>
 void DeserializationImpl(T& fmd, const std::filesystem::path& databasePath)
 {
 	std::ifstream fs(databasePath, std::ios::binary | std::ios::in);
-	const auto fsBufSize = 4096 * 1024;
-	const auto fsBuf = new char[fsBufSize];
+	const auto fsBufSize = 1024 * 1024;
+	auto* const fsBuf = new char[fsBufSize];
 	fs.rdbuf()->pubsetbuf(fsBuf, fsBufSize);
 	Uint64Bytes uint64Buf{ 0 };
 	constexpr auto md5Len = 32;
@@ -116,6 +117,7 @@ void DeserializationImpl(T& fmd, const std::filesystem::path& databasePath)
 	{
 		delete[] buf;
 	}
+	delete[] fsBuf;
 }
 
 void Deserialization(Database& fmd, const std::filesystem::path& databasePath)
