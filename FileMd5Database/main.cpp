@@ -607,7 +607,7 @@ int main(int argc, char* argv[])
 								return false;
 							}
 							const auto n = Convert::ToUint64(args);
-							const auto newN = std::min(n, fmd.size());
+							const auto newN = std::min(n, static_cast<uint64_t>(fmd.size()));
 							std::vector<ModelRef> res(newN);
 							std::copy_n(std::execution::par_unseq, fmd.begin(), newN, res.begin());
 							Interactive(res);
