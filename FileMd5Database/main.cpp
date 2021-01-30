@@ -266,6 +266,9 @@ int main(int argc, char* argv[])
 	args.Add(consoleLog);
 	args.Add(interactive);
 #pragma endregion Args
+
+	bool logStarted = false;
+	
 #define Ex
 	
 #ifdef Ex
@@ -712,6 +715,7 @@ int main(int argc, char* argv[])
 		const auto databaseFilePath = ArgumentsValue(dbPathArg);
 
 		FileMd5DatabaseInit(ArgumentsValue(logLevel), ArgumentsValue(logPath), ArgumentsValue(consoleLog));
+		logStarted = true;
 		
 		std::unordered_map<DbOperator, std::function<void()>>
 		{
@@ -817,5 +821,8 @@ Interactive:
 )";
 	}
 #endif
-	FileMd5DatabaseEnd();
+	if (logStarted)
+	{
+		FileMd5DatabaseEnd();
+	}
 }
