@@ -4,7 +4,7 @@
 #include <type_traits>
 #include <climits>
 
-template<class T, std::size_t... N>
+template<typename T, std::size_t... N>
 constexpr T __EndianSwapImpl__(T i, std::index_sequence<N...>)
 {
 	return (((i >> N * CHAR_BIT & static_cast<std::uint8_t>(-1)) << (sizeof(T) - 1 - N) * CHAR_BIT) | ...);
@@ -25,7 +25,7 @@ namespace Bit
 #endif
 	};
 	
-	template<class T, class U = std::make_unsigned_t<T>>
+	template<typename T, typename U = std::make_unsigned_t<T>>
 	constexpr U EndianSwap(T i)
 	{
 		return __EndianSwapImpl__<U>(i, std::make_index_sequence<sizeof(T)>{});

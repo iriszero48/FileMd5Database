@@ -3,11 +3,8 @@
 #include <deque>
 #include <regex>
 #include <sstream>
-#include <queue>
 #include <execution>
 #include <iostream>
-
-
 
 #include "Convert.h"
 #include "CSV.h"
@@ -115,15 +112,15 @@ void FileMd5DatabaseInit(const LogLevel& level, const std::filesystem::path& fil
 	Log.File = file;
 	Log.Console = console;
 	Log.LogThread = std::thread(LogWorker);
-	Log.LogThread.detach();
 }
 
 void FileMd5DatabaseEnd()
 {
 	Log.Write<LogLevel::Kill>("{ok}.");
+	Log.LogThread.join();
 }
 
-inline void FileMd5DatabaseAdd(const std::string& deviceName, const std::filesystem::path& file, Database& fmd)
+void FileMd5DatabaseAdd(const std::string& deviceName, const std::filesystem::path& file, Database& fmd)
 {
 	try
 	{
@@ -214,13 +211,93 @@ void FileMd5DatabaseBuilder(const std::string& deviceName, const std::filesystem
 	}
 }
 
+template<typename T = std::regex>
+struct RegexMatch
+{
+	explicit RegexMatch(T keyword) : Keyword(std::move(keyword)) { }
+	
+	template<typename V>
+	constexpr auto operator()(const V& v) const
+	{
+		return std::regex_match(v, Keyword);
+	}
+
+	T Keyword;
+};
+
+template<typename T>
+struct ContainMatch
+{
+	explicit ContainMatch(T keyword) : Keyword(std::move(keyword)) { }
+	
+	template<typename V>
+	constexpr auto operator()(const V& v) const
+	{
+		return std::search(v.begin(), v.end(), std::boyer_moore_horspool_searcher(Keyword.begin(), Keyword.end())) != v.end();
+	}
+
+	T Keyword;
+};
+
+template<typename T>
+struct StartWithMatch
+{
+	explicit StartWithMatch(T keyword) : Keyword(std::move(keyword)) { }
+	
+	template<typename V>
+	constexpr auto operator()(const V& v) const
+	{
+		if (v.length() < Keyword.length())
+		{
+			return false;
+		}
+		return std::equal(Keyword.begin(), Keyword.end(), v.begin());
+	}
+	
+	T Keyword;
+};
+
+template<Data DataValue, typename Model, typename Keyword, typename Match>
+constexpr auto ModelMatch(const Model& model, const Keyword& keyword, const Match& match)
+{
+	return match(DataToMember<DataValue, Model>()(model), keyword);
+}
+
+template<Data DataValue, typename Model, typename Keyword>
+constexpr auto ModelRegexMatch(const Model& model, const Keyword& keyword)
+{
+	return match(DataToMember<DataValue, Model>()(model), keyword);
+}
+
+template<typename Fmd, typename Res>
+void FileMd5DatabaseQueryImpl(Res& res, const Fmd& fmd, const Data& sortBy, bool desc, const uint64_t limit)
+{
+	ModelSortBranch(fmd, sortBy);
+	ModelRevBranch(fmd, desc);
+	std::atomic_uint64_t count = 0;
+	std::copy_if(fmd.begin(), fmd.end(), std::back_inserter(res), [&](const ModelRef& model)
+	{
+		if (count.load() < limit)
+		{
+			//if (matcher)
+			{
+				++count;
+				return true;
+			}
+		}
+		return false;
+	});
+}
+
 void FileMd5DatabaseQuery(const std::vector<Model>& fmdRaw, const MatchMethod& matchMethod, const Data& queryData,
 	const Data& sortBy, const std::string& keyword, const uint64_t limit, const bool desc)
 {
 	puts(("load " + std::to_string(fmdRaw.size())).c_str());
 	std::vector<ModelRef> fmd(fmdRaw.size());
 	std::transform(std::execution::par_unseq, fmdRaw.begin(), fmdRaw.end(), fmd.begin(), [](const Model& model) { return ModelRef(std::string_view(model.Path.str, model.Path.size), std::string_view(model.Md5.str, model.Md5.size), model.Size, std::string_view(model.Time.str, model.Time.size)); });
+	
 
+	
 #define QueryImpl(cmp, matcher)\
 	{\
 		std::sort(std::execution::par_unseq, fmd.begin(), fmd.end(), [](const ModelRef& a, const ModelRef& b)\

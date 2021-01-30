@@ -4,6 +4,7 @@
 #include <future>
 #include <map>
 #include <string>
+#include <execution>
 
 #include "Thread.h"
 #include "Arguments.h"
@@ -22,7 +23,12 @@ public:
 	std::filesystem::path File = {};
 	bool Console = true;
 
-	using MsgType = std::tuple<LogLevel, std::string>;
+	struct MsgType
+	{
+		LogLevel Level;
+		std::string Msg;
+	};
+	
 	std::thread LogThread{};
 	Thread::Channel<MsgType> Chan{};
 
@@ -38,7 +44,7 @@ private:
 	{
 		std::string msg{};
 		(msg.append(args), ...);
-		Chan.Write(MsgType(Level, msg));
+		Chan.Write(MsgType{ Level, msg });
 	}
 };
 
@@ -81,11 +87,121 @@ struct ModelRef
 	ModelRef();
 };
 
+template <typename T = void> struct IntCmp {};
+template <typename T = void> struct StringCmp {};
+
+template<>
+struct IntCmp<void>
+{
+	template<typename T>
+	constexpr auto operator()(const T& a, const T& b) const
+	{
+		return std::less<>()(a, b);
+	}
+};
+
+template<>
+struct StringCmp<void>
+{
+	template<typename T>
+	constexpr auto operator()(const T& a, const T& b) const
+	{
+		return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
+	}
+};
+
+template<Data DataValue, typename Model> struct DataToMember {};
+
+template<typename Model>
+struct DataToMember<Data::FileModificationTime, Model> { constexpr auto operator()(const Model& model) const { return model.Time; } };
+
+template<typename Model>
+struct DataToMember<Data::Md5, Model> { constexpr auto operator()(const Model& model) const { return model.Md5; } };
+
+template<typename Model>
+struct DataToMember<Data::Path, Model> { constexpr auto operator()(const Model& model) const { return model.Path; } };
+
+template<typename Model>
+struct DataToMember<Data::Size, Model> { constexpr auto operator()(const Model& model) const { return model.Size; } };
+
+template<Data DataValue>
+struct ModelCmp
+{
+	template<typename Model, typename Cmp>
+	constexpr auto operator()(const Cmp& cmp, const Model& a, const Model& b)
+	{
+		return cmp(DataToMember<DataValue, Model>()(a), DataToMember<DataValue, Model>()(b));
+	}
+};
+
+template<Data DataValue>
+struct ModelIntCmp
+{
+	template<typename Model>
+	constexpr auto operator()(const Model& a, const Model& b)
+	{
+		return ModelCmp<DataValue>()(IntCmp<>(), a, b);
+	}
+};
+
+template<Data DataValue>
+struct ModelStringCmp
+{
+	template<typename Model>
+	constexpr auto operator()(const Model& a, const Model& b)
+	{
+		return ModelCmp<DataValue>()(StringCmp<>(), a, b);
+	}
+};
+
+template<typename Fmd, typename Cmp>
+constexpr auto ModelSort(Fmd& fmd, const Cmp& cmp)
+{
+	std::sort(std::execution::par_unseq, fmd.begin(), fmd.end(), cmp);
+}
+
+template<typename Fmd>
+constexpr void ModelSortBranch(Fmd& fmd, const Data& sortBy)
+{
+	if (sortBy == Data::FileModificationTime) ModelSort(fmd, ModelStringCmp<Data::FileModificationTime>());
+	else if (sortBy == Data::Md5) ModelSort(fmd, ModelStringCmp<Data::Md5>());
+	else if (sortBy == Data::Path) ModelSort(fmd, ModelStringCmp<Data::Path>());
+	else if (sortBy == Data::Size) ModelSort(fmd, ModelIntCmp<Data::Size>());
+}
+
+template<MatchMethod Method, typename Fmd>
+constexpr void ModelMatchBranchImpl(Fmd& fmd, const Data& sortBy)
+{
+	if (sortBy == Data::FileModificationTime) ModelSort(fmd, ModelStringCmp<Data::FileModificationTime>());
+	else if (sortBy == Data::Md5) ModelSort(fmd, ModelStringCmp<Data::Md5>());
+	else if (sortBy == Data::Path) ModelSort(fmd, ModelStringCmp<Data::Path>());
+	else if (sortBy == Data::Size) ModelSort(fmd, ModelIntCmp<Data::Size>());
+}
+
+template<MatchMethod Method, typename Fmd>
+constexpr void ModelMatchBranch(Fmd& fmd, const Data& sortBy)
+{
+	if (sortBy == Data::FileModificationTime) ModelSort(fmd, ModelStringCmp<Data::FileModificationTime>());
+	else if (sortBy == Data::Md5) ModelSort(fmd, ModelStringCmp<Data::Md5>());
+	else if (sortBy == Data::Path) ModelSort(fmd, ModelStringCmp<Data::Path>());
+	else if (sortBy == Data::Size) ModelSort(fmd, ModelIntCmp<Data::Size>());
+}
+
+template<typename Fmd>
+void ModelRevBranch(Fmd& fmd, const bool rev)
+{
+	if (rev)
+	{
+		std::reverse(std::execution::par_unseq, fmd.begin(), fmd.end());
+	}
+}
+
+
 void FileMd5DatabaseInit(const LogLevel& level = LogLevel::Info, const std::filesystem::path& file = {}, bool console = true);
 
 void FileMd5DatabaseEnd();
 
-inline void FileMd5DatabaseAdd(const std::string& deviceName, const std::filesystem::path& file, Database& fmd);
+void FileMd5DatabaseAdd(const std::string& deviceName, const std::filesystem::path& file, Database& fmd);
 
 void FileMd5DatabaseBuilder(const std::string& deviceName, const std::filesystem::path& path, Database& fmd, std::vector<std::string> skips);
 

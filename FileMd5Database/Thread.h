@@ -14,6 +14,7 @@ namespace Thread
         {
             std::unique_lock<std::mutex> lock(mtx);
             buffer.push_back(data);
+            lock.unlock();
             cv.notify_all();
         }
 
@@ -26,7 +27,7 @@ namespace Thread
             return item;
         }
 
-        auto Length() const
+        [[nodiscard]] auto Length() const
         {
             return buffer.size();
         }

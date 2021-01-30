@@ -242,7 +242,8 @@ inline void Md5MakeDigestEx(char* md5Str, const unsigned char* digest, const int
 std::string Md5File(const std::filesystem::path& path)
 {
 	const auto fsBufSize = 1024 * 1024;
-	const auto fsBuf = new char[fsBufSize];
+	
+	const auto fsBuf = std::make_unique<char[]>(fsBufSize);
 	char hashStr[33] = { 0 };
 	char buf[4096] = { 0 };
 	unsigned char digest[16] = { 0 };
@@ -252,7 +253,7 @@ std::string Md5File(const std::filesystem::path& path)
 	try
 	{
 		stream.open(path, std::ios::in | std::ios::binary);
-		stream.rdbuf()->pubsetbuf(fsBuf, fsBufSize);
+		stream.rdbuf()->pubsetbuf(fsBuf.get(), fsBufSize);
 		Md5Init(&context);
 
 		while (true)
@@ -279,6 +280,5 @@ std::string Md5File(const std::filesystem::path& path)
 	stream.close();
 	Md5Final(digest, &context);
 	Md5MakeDigestEx(hashStr, digest, 16);
-	delete[] fsBuf;
 	return hashStr;
 }

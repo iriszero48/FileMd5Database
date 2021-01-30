@@ -4,10 +4,17 @@
 #include <unordered_map>
 #include <execution>
 
+#include "Macro.h"
 #include "Arguments.h"
 #include "FileMd5Database.h"
 #include "FileMd5DatabaseSerialization.h"
 #include "Convert.h"
+
+#ifndef MacroWindows
+
+#include <malloc.h>
+
+#endif
 
 ArgumentOption(DbOperator, Build, Add, Query, Concat, Export, Alter)
 
@@ -57,8 +64,6 @@ static StackTrace Stack{};
 
 int main(int argc, char* argv[])
 {
-	Log.Write("test");
-
 #define ArgumentsFunc(arg) [&](decltype(arg)::ConvertFuncParamType value) -> decltype(arg)::ConvertResult
 #define ArgumentsValue(arg) args.Value<decltype(arg)::ValueType>(arg)
 
@@ -192,7 +197,7 @@ int main(int argc, char* argv[])
 	ArgumentsParse::Argument<AlterType> alterType
 	{
 		"--alterType",
-		"alter type",
+		"alter type " + AlterTypeDesc(),
 		ArgumentsFunc(alterType)
 		{
 			return {ToAlterType(std::string(value)), {}};
@@ -271,12 +276,19 @@ int main(int argc, char* argv[])
 
 		if (ArgumentsValue(interactive))
 		{
+			const auto ll = ArgumentsValue(logLevel);
 			const std::function<bool(std::vector<ModelRef>&)> Interactive = [&](std::vector<ModelRef>& fmd) -> bool
 			{
-				Stack.Push({ __FILE__, __LINE__ - 2, "Interactive", reinterpret_cast<uint64_t>(&Interactive), fmd.size() });
+				Stack.Push({ __FILE__, __LINE__ - 2, "Interactive", reinterpret_cast<uint64_t>(std::addressof(Interactive)), fmd.size() });
 				while (true)
 				{
 					Stack.PrintStackTrace(fmd.size());
+#ifndef MacroWindows
+					if (ll >= LogLevel::Debug)
+					{
+						malloc_stats();
+					}
+#endif
 					std::cout << "->";
 					std::string line;
 					std::getline(std::cin, line);
@@ -320,6 +332,9 @@ int main(int argc, char* argv[])
 							data.shrink_to_fit();
 							Interactive(fmd);
 							std::for_each(std::execution::par_unseq, address.begin(), address.end(), [](const char* addr) { delete[] addr; });
+#ifndef MacroWindows
+							malloc_trim(0);
+#endif
 							return false;
 						} },
 						{ "sort",[&](const std::string& args = {}, const bool help = false)
@@ -330,10 +345,7 @@ int main(int argc, char* argv[])
 								return false;
 							}
 							const auto by = *ToData(args);
-							if (by == Data::FileModificationTime) std::sort(std::execution::par_unseq, fmd.begin(), fmd.end(), [](const ModelRef& a, const ModelRef& b) { return std::lexicographical_compare(a.Time.begin(), a.Time.end(), b.Time.begin(), b.Time.end()); });
-							else if (by == Data::Md5) std::sort(std::execution::par_unseq, fmd.begin(), fmd.end(), [](const ModelRef& a, const ModelRef& b) { return std::lexicographical_compare(a.Md5.begin(), a.Md5.end(), b.Md5.begin(), b.Md5.end()); });
-							else if (by == Data::Path) std::sort(std::execution::par_unseq, fmd.begin(), fmd.end(), [](const ModelRef& a, const ModelRef& b) { return std::lexicographical_compare(a.Path.begin(), a.Path.end(), b.Path.begin(), b.Path.end()); });
-							else if (by == Data::Size) std::sort(std::execution::par_unseq, fmd.begin(), fmd.end(), [](const ModelRef& a, const ModelRef& b) { return std::less<>()(a.Size, b.Size); });
+							ModelSortBranch(fmd, by);
 							return false;
 						} },
 						{ "rev",[&](const std::string& args = {}, const bool help = false)
