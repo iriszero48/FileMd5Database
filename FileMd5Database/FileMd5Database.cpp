@@ -24,11 +24,10 @@ ArgumentOptionCpp(AlterType, DeviceName, DriveLetter)
 
 inline std::string ToString(const std::filesystem::path& path)
 {
+	
 	try
 	{
-		std::ostringstream oss;
-		oss << path;
-		return oss.str();
+		return path.string();
 	}
 	catch (...)
 	{
@@ -38,35 +37,42 @@ inline std::string ToString(const std::filesystem::path& path)
 
 static void LogWorker()
 {
-	std::ofstream fs{};
-	while (true)
+	try
 	{
-		const auto& [l, s] = Log.Chan.Read();
-		if (l == LogLevel::Kill)
+		std::ofstream fs{};
+		while (true)
 		{
-			puts(s.c_str());
-			return;
-		}
-		if (l <= Log.Level)
-		{
-			if (Log.Console)
+			const auto& [l, s] = Log.Chan.Read();
+			if (l == LogLevel::Kill)
 			{
-				if (l == LogLevel::Error)
+				puts(s.c_str());
+				return;
+			}
+			if (l <= Log.Level)
+			{
+				if (Log.Console)
 				{
-					fputs(s.c_str(), stderr);
+					if (l == LogLevel::Error)
+					{
+						fputs(s.c_str(), stderr);
+					}
+					else
+					{
+						puts(s.c_str());
+					}
 				}
-				else
+				if (!Log.File.empty())
 				{
-					puts(s.c_str());
+					fs.open(Log.File, std::ios::app | std::ios::binary);
+					fs << s << "\n";
+					fs.close();
 				}
 			}
-			if (!Log.File.empty())
-			{
-				fs.open(Log.File, std::ios::app | std::ios::binary);
-				fs << s << "\n";
-				fs.close();
-			}
 		}
+	}
+	catch (const std::exception& ex)
+	{
+		std::cerr << "log die. " << ex.what() << "\n";
 	}
 }
 
@@ -269,26 +275,6 @@ constexpr auto ModelRegexMatch(const Model& model, const Keyword& keyword)
 	return match(DataToMember<DataValue, Model>()(model), keyword);
 }
 
-template<typename Fmd, typename Res>
-void FileMd5DatabaseQueryImpl(Res& res, const Fmd& fmd, const Data& sortBy, bool desc, const uint64_t limit)
-{
-	ModelSortBranch(fmd, sortBy);
-	ModelRevBranch(fmd, desc);
-	std::atomic_uint64_t count = 0;
-	std::copy_if(fmd.begin(), fmd.end(), std::back_inserter(res), [&](const ModelRef& model)
-	{
-		if (count.load() < limit)
-		{
-			//if (matcher)
-			{
-				++count;
-				return true;
-			}
-		}
-		return false;
-	});
-}
-
 void FileMd5DatabaseQuery(const std::vector<Model>& fmdRaw, const MatchMethod& matchMethod, const Data& queryData,
 	const Data& sortBy, const std::string& keyword, const uint64_t limit, const bool desc)
 {
@@ -479,7 +465,7 @@ void Export(Database& fmd, const std::string& path, const ExportFormat& format)
 		CsvFile csv(path, ",");
 		for (const auto& [k, v] : fmd)
 		{
-			const auto splitPos = k.find(":");
+			const auto splitPos = k.find(':');
 			auto _path = k.substr(splitPos + 1);
 			std::replace(_path.begin(), _path.end(), '\\', '/');
 			csv << _path

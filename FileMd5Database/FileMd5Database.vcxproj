@@ -148,7 +148,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Arguments.cpp" />
-    <ClCompile Include="Convert.cpp" />
     <ClCompile Include="CSV.cpp" />
     <ClCompile Include="FileMd5Database.cpp" />
     <ClCompile Include="FileMd5DatabaseSerialization.cpp" />

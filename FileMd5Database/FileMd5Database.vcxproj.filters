@@ -36,9 +36,6 @@
     <ClCompile Include="Time.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Convert.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Arguments.h">

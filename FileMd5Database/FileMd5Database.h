@@ -32,7 +32,7 @@ public:
 	std::thread LogThread{};
 	Thread::Channel<MsgType> Chan{};
 
-	template<LogLevel Level = LogLevel::Info, class...Args>
+	template<LogLevel Level = LogLevel::Info, typename...Args>
 	void Write(Args&&... args)
 	{
 		WriteImpl<Level>(std::forward<Args>(args)...);

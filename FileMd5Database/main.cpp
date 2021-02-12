@@ -3,6 +3,8 @@
 #include <regex>
 #include <unordered_map>
 #include <execution>
+#include <random>
+
 
 #include "Macro.h"
 #include "Arguments.h"
@@ -157,7 +159,7 @@ int main(int argc, char* argv[])
 		500,
 		ArgumentsFunc(limit)
 		{
-			return {Convert::ToUint64(std::string(value)), {}};
+			return {Convert::FromString<uint64_t>(std::string(value)), {}};
 		}
 	};
 	ArgumentsParse::Argument<bool, 0> desc
@@ -267,7 +269,7 @@ int main(int argc, char* argv[])
 	args.Add(interactive);
 #pragma endregion Args
 
-	bool logStarted = false;
+	auto logStarted = false;
 	
 #define Ex
 	
@@ -358,6 +360,17 @@ int main(int argc, char* argv[])
 								return false;
 							}
 							std::reverse(std::execution::par_unseq, fmd.begin(), fmd.end());
+							return false;
+						} },
+						{ "shuffle",[&](const std::string& args = {}, const bool help = false)
+						{
+							if (help)
+							{
+								return false;
+							}
+							std::random_device rd;
+							std::mt19937 g(rd());
+							std::shuffle(fmd.begin(), fmd.end(), g);
 							return false;
 						} },
 						{ "regex",[&](const std::string& args = {}, const bool help = false)
@@ -510,7 +523,7 @@ int main(int argc, char* argv[])
 							if (by == Data::FileModificationTime) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return std::equal(model.Time.begin(), model.Time.end(), kw.begin(), kw.end()) ? model : ModelRef(); });
 							else if (by == Data::Md5) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return std::equal(model.Md5.begin(), model.Md5.end(), kw.begin(), kw.end()) ? model : ModelRef(); });
 							else if (by == Data::Path) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return std::equal(model.Path.begin(), model.Path.end(), kw.begin(), kw.end()) ? model : ModelRef(); });
-							else if (by == Data::Size) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(),[&, v = Convert::ToUint64(kw)](const ModelRef& model) { return v == model.Size ? model : ModelRef(); });
+							else if (by == Data::Size) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(),[&, v = Convert::FromString<uint64_t>(kw)](const ModelRef& model) { return v == model.Size ? model : ModelRef(); });
 							const auto count = std::count_if(std::execution::par_unseq, tmp.begin(), tmp.end(), [](const ModelRef& model) { return model.Path.length() != 0; });
 							std::vector<ModelRef> res(count);
 							std::copy_if(std::execution::par_unseq,tmp.begin(), tmp.end(), res.begin(), [](const ModelRef& model) { return model.Path.length() != 0; });
@@ -533,7 +546,7 @@ int main(int argc, char* argv[])
 							if (by == Data::FileModificationTime) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return !std::equal(model.Time.begin(), model.Time.end(), kw.begin(), kw.end()) ? model : ModelRef(); });
 							else if (by == Data::Md5) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return !std::equal(model.Md5.begin(), model.Md5.end(), kw.begin(), kw.end()) ? model : ModelRef(); });
 							else if (by == Data::Path) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return !std::equal(model.Path.begin(), model.Path.end(), kw.begin(), kw.end()) ? model : ModelRef(); });
-							else if (by == Data::Size) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(),[&, v = Convert::ToUint64(kw)](const ModelRef& model) { return v != model.Size ? model : ModelRef(); });
+							else if (by == Data::Size) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(),[&, v = Convert::FromString<uint64_t>(kw)](const ModelRef& model) { return v != model.Size ? model : ModelRef(); });
 							const auto count = std::count_if(std::execution::par_unseq, tmp.begin(), tmp.end(), [](const ModelRef& model) { return model.Path.length() != 0; });
 							std::vector<ModelRef> res(count);
 							std::copy_if(std::execution::par_unseq,tmp.begin(), tmp.end(), res.begin(), [](const ModelRef& model) { return model.Path.length() != 0; });
@@ -556,7 +569,7 @@ int main(int argc, char* argv[])
 							if (by == Data::FileModificationTime) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return model.Time < kw ? model : ModelRef(); });
 							else if (by == Data::Md5) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return model.Time < kw ? model : ModelRef(); });
 							else if (by == Data::Path) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return model.Time < kw ? model : ModelRef(); });
-							else if (by == Data::Size) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(),[&, v = Convert::ToUint64(kw)](const ModelRef& model) { return model.Size < v ? model : ModelRef(); });
+							else if (by == Data::Size) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(),[&, v = Convert::FromString<uint64_t>(kw)](const ModelRef& model) { return model.Size < v ? model : ModelRef(); });
 							const auto count = std::count_if(std::execution::par_unseq, tmp.begin(), tmp.end(), [](const ModelRef& model) { return model.Path.length() != 0; });
 							std::vector<ModelRef> res(count);
 							std::copy_if(std::execution::par_unseq,tmp.begin(), tmp.end(), res.begin(), [](const ModelRef& model) { return model.Path.length() != 0; });
@@ -579,7 +592,7 @@ int main(int argc, char* argv[])
 							if (by == Data::FileModificationTime) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return model.Time > kw ? model : ModelRef(); });
 							else if (by == Data::Md5) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return model.Time > kw ? model : ModelRef(); });
 							else if (by == Data::Path) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return model.Time > kw ? model : ModelRef(); });
-							else if (by == Data::Size) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(),[&, v = Convert::ToUint64(kw)](const ModelRef& model) { return model.Size > v ? model : ModelRef(); });
+							else if (by == Data::Size) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(),[&, v = Convert::FromString<uint64_t>(kw)](const ModelRef& model) { return model.Size > v ? model : ModelRef(); });
 							const auto count = std::count_if(std::execution::par_unseq, tmp.begin(), tmp.end(), [](const ModelRef& model) { return model.Path.length() != 0; });
 							std::vector<ModelRef> res(count);
 							std::copy_if(std::execution::par_unseq,tmp.begin(), tmp.end(), res.begin(), [](const ModelRef& model) { return model.Path.length() != 0; });
@@ -597,6 +610,17 @@ int main(int argc, char* argv[])
 							puts(Convert::ToString(std::max_element(std::execution::par_unseq, fmd.begin(), fmd.end(), [](const ModelRef& a, const ModelRef& b) { return std::less<>()(a.Path.length(), b.Path.length()); })->Path.length()).c_str());
 							return false;
 						} },
+						{ "sum",[&](const std::string& args = {}, const bool help = false)
+						{
+							if (help)
+							{
+								return false;
+							}
+							std::vector<uint64_t> tmp(fmd.size());
+							std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [](const ModelRef& model) { return model.Size; });
+							puts(Convert::ToString(std::reduce(std::execution::par_unseq, tmp.begin(), tmp.end())).c_str());
+							return false;
+						} },
 						{ "skip",[&](const std::string& args = {}, const bool help = false)
 						{
 							if (help)
@@ -604,7 +628,7 @@ int main(int argc, char* argv[])
 								std::cout << "int";
 								return false;
 							}
-							const auto n = Convert::ToUint64(args);
+							const auto n = Convert::FromString<uint64_t>(args);
 							if (fmd.size() > n)
 							{
 								const auto newN = fmd.size() - n;
@@ -621,7 +645,7 @@ int main(int argc, char* argv[])
 								std::cout << "int";
 								return false;
 							}
-							const auto n = Convert::ToUint64(args);
+							const auto n = Convert::FromString<uint64_t>(args);
 							const auto newN = std::min(n, static_cast<uint64_t>(fmd.size()));
 							std::vector<ModelRef> res(newN);
 							std::copy_n(std::execution::par_unseq, fmd.begin(), newN, res.begin());
@@ -660,7 +684,7 @@ int main(int argc, char* argv[])
 								std::cout << "int";
 								return false;
 							}
-							const auto limit = Convert::ToUint64(args);
+							const auto limit = Convert::FromString<uint64_t>(args);
 							if (fmd.empty()) return false;
 							std::vector<ModelStr> res{};
 							std::for_each(fmd.begin(), fmd.end(),[&, i = static_cast<uint64_t>(0)](const ModelRef& model) mutable
@@ -693,7 +717,9 @@ int main(int argc, char* argv[])
 						} },
 					};
 					const auto sp = line.find(' ');
+#ifdef Ex
 					try
+#endif
 					{
 						if (ops.at(line.substr(0, sp))(std::filesystem::path(line.substr(sp + 1)).u8string(), false))
 						{
@@ -701,10 +727,12 @@ int main(int argc, char* argv[])
 							return true;
 						}
 					}
+#ifdef Ex
 					catch (const std::exception& ex)
 					{
 						puts(ex.what());
 					}
+#endif
 				}
 			};
 			std::vector<ModelRef> empty{};
@@ -801,11 +829,11 @@ int main(int argc, char* argv[])
 	{
 		std::cout << ex.what() << "\n" << args.GetDesc() << R"(
 Build:
-    --device --root -p
+    --device --root -p [--skip]
 Add:
     --device --file -p
 Query:
-    --data --keyword --limit --method --sort -p --desc
+    --keyword -p [--data] [--desc] [--limit] [--method] [--sort]
 Concat:
     --paths -p
 Export:
@@ -813,11 +841,11 @@ Export:
 Alter:
     --alterType --value -p
 
-Log:
-    --disableconsolelog --log --loglevel
-
 Interactive:
     --interactive
+
+Log:
+    [--disableconsolelog] [--log] [--loglevel]
 )";
 	}
 #endif
