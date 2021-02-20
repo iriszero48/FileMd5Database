@@ -13,12 +13,12 @@
 #include "Time.h"
 #include "Macro.h"
 
-#define LogInfo(path,md5,size,time) Log.Write("<",ToString(path),",<" ,md5, "," ,std::to_string(size), ",", time ,">>")
+#define LogInfo(path,md5,size,time) Log.Write("<",ToString(path),",<" ,md5, "," ,Convert::ToString(size), ",", time ,">>")
 #define LogErr(path, message) Log.Write<LogLevel::Error>("[Error] [",ToString(path),"] [", MacroFunctionName,"] [" __FILE__ ":" MacroLine "] ", message)
 
 ArgumentOptionCpp(LogLevel, Kill, None, Error, Info, Debug)
-ArgumentOptionCpp(MatchMethod, Contain, StartWith, Regex)
-ArgumentOptionCpp(Data, Path, Md5, Size, FileModificationTime)
+ArgumentOptionCpp(MatchMethod, Contain, StartWith, EndWith, Regex, Eq, Gt, Lt)
+ArgumentOptionCpp(Data, Path, Md5, Size, Time)
 ArgumentOptionCpp(ExportFormat, CSV, JSON)
 ArgumentOptionCpp(AlterType, DeviceName, DriveLetter)
 
@@ -86,7 +86,7 @@ inline std::string FileLastModified(const std::filesystem::path& file)
 			+ std::chrono::system_clock::now()));
 		if (static_cast<int64_t>(time) < 0)
 		{
-			throw std::runtime_error("negative time value " + std::to_string(static_cast<int64_t>(time)));
+			throw std::runtime_error("negative time value " + Convert::ToString(static_cast<int64_t>(time)));
 		}
 		tm local{};
 		Time::Local(&local, &time);
@@ -151,7 +151,7 @@ void FileMd5DatabaseAdd(const std::string& deviceName, const std::filesystem::pa
 			LogErr(file, e.what());
 			size = 0;
 		}
-		if (Log.Level >= LogLevel::Debug) Log.Write<LogLevel::Debug>("-> ", std::to_string(size));
+		if (Log.Level >= LogLevel::Debug) Log.Write<LogLevel::Debug>("-> ", Convert::ToString(size));
 		if (size == 0)
 		{
 			md5 = "";
@@ -217,68 +217,10 @@ void FileMd5DatabaseBuilder(const std::string& deviceName, const std::filesystem
 	}
 }
 
-template<typename T = std::regex>
-struct RegexMatch
-{
-	explicit RegexMatch(T keyword) : Keyword(std::move(keyword)) { }
-	
-	template<typename V>
-	constexpr auto operator()(const V& v) const
-	{
-		return std::regex_match(v, Keyword);
-	}
-
-	T Keyword;
-};
-
-template<typename T>
-struct ContainMatch
-{
-	explicit ContainMatch(T keyword) : Keyword(std::move(keyword)) { }
-	
-	template<typename V>
-	constexpr auto operator()(const V& v) const
-	{
-		return std::search(v.begin(), v.end(), std::boyer_moore_horspool_searcher(Keyword.begin(), Keyword.end())) != v.end();
-	}
-
-	T Keyword;
-};
-
-template<typename T>
-struct StartWithMatch
-{
-	explicit StartWithMatch(T keyword) : Keyword(std::move(keyword)) { }
-	
-	template<typename V>
-	constexpr auto operator()(const V& v) const
-	{
-		if (v.length() < Keyword.length())
-		{
-			return false;
-		}
-		return std::equal(Keyword.begin(), Keyword.end(), v.begin());
-	}
-	
-	T Keyword;
-};
-
-template<Data DataValue, typename Model, typename Keyword, typename Match>
-constexpr auto ModelMatch(const Model& model, const Keyword& keyword, const Match& match)
-{
-	return match(DataToMember<DataValue, Model>()(model), keyword);
-}
-
-template<Data DataValue, typename Model, typename Keyword>
-constexpr auto ModelRegexMatch(const Model& model, const Keyword& keyword)
-{
-	return match(DataToMember<DataValue, Model>()(model), keyword);
-}
-
 void FileMd5DatabaseQuery(const std::vector<Model>& fmdRaw, const MatchMethod& matchMethod, const Data& queryData,
 	const Data& sortBy, const std::string& keyword, const uint64_t limit, const bool desc)
 {
-	puts(("load " + std::to_string(fmdRaw.size())).c_str());
+	puts(("load " + Convert::ToString(fmdRaw.size())).c_str());
 	std::vector<ModelRef> fmd(fmdRaw.size());
 	std::transform(std::execution::par_unseq, fmdRaw.begin(), fmdRaw.end(), fmd.begin(), [](const Model& model) { return ModelRef(std::string_view(model.Path.str, model.Path.size), std::string_view(model.Md5.str, model.Md5.size), model.Size, std::string_view(model.Time.str, model.Time.size)); });
 	
@@ -307,7 +249,7 @@ void FileMd5DatabaseQuery(const std::vector<Model>& fmdRaw, const MatchMethod& m
 
 #define IntCmp(member) std::less<>()((a).member, (b).member)
 #define StringCmp(member) std::lexicographical_compare((a).member.begin(), (a).member.end(), (b).member.begin(), (b).member.end())
-#define IntMatcher(member) std::to_string(model.member) == keyword
+#define IntMatcher(member) Convert::ToString(model.member) == keyword
 #define StringContainMatcher(member) std::search(model.member.begin(), model.member.end(), std::boyer_moore_horspool_searcher(keyword.begin(), keyword.end())) != model.member.end()
 #define StringStartWithMatcher(member) std::equal(keyword.begin(), keyword.end(), model.member.begin())
 #define StringRegexMatcher(member) std::regex_match(std::string(model.member), std::regex(keyword))
@@ -333,7 +275,7 @@ void FileMd5DatabaseQuery(const std::vector<Model>& fmdRaw, const MatchMethod& m
 	
 #define QueryDataBranch(cmpFull)\
 	{\
-		if (queryData == Data::FileModificationTime) MatchMethodBranch(cmpFull, Time)\
+		if (queryData == Data::Time) MatchMethodBranch(cmpFull, Time)\
 		else if (queryData == Data::Md5) MatchMethodBranch(cmpFull, Md5)\
 		else if (queryData == Data::Path) MatchMethodBranch(cmpFull, Path)\
 		else if (queryData == Data::Size) DescBranch(cmpFull, IntMatcher(Size))\
@@ -341,7 +283,7 @@ void FileMd5DatabaseQuery(const std::vector<Model>& fmdRaw, const MatchMethod& m
 	
 	std::vector<ModelRef> res{};
 	
-	if (sortBy == Data::FileModificationTime) QueryDataBranch(StringCmp(Time))
+	if (sortBy == Data::Time) QueryDataBranch(StringCmp(Time))
 	else if (sortBy == Data::Md5) QueryDataBranch(StringCmp(Md5))
 	else if (sortBy == Data::Path) QueryDataBranch(StringCmp(Path))
 	else if (sortBy == Data::Size) QueryDataBranch(IntCmp(Size))
@@ -471,7 +413,7 @@ void Export(Database& fmd, const std::string& path, const ExportFormat& format)
 			csv << _path
 				<< k.substr(0, splitPos)
 				<< std::get<0>(v)
-				<< std::to_string(std::get<1>(v))
+				<< Convert::ToString(std::get<1>(v))
 				<< std::get<2>(v)
 				<< CsvFile::EndRow;
 		}

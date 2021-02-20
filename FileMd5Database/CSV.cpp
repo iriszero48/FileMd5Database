@@ -11,6 +11,7 @@ CsvFile::CsvFile(const std::string& filename, std::string separator)
 {
 	fs.exceptions(std::ios::failbit | std::ios::badbit);
 	fs.open(filename);
+	fs.rdbuf()->pubsetbuf(buffer.get(), bufferSize);
 }
 
 CsvFile::~CsvFile()

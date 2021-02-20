@@ -5,6 +5,8 @@
 class CsvFile
 {
 	std::ofstream fs;
+	const std::uint64_t bufferSize = 1024 * 1024;
+	std::unique_ptr<char[]> buffer = std::make_unique<char[]>(bufferSize);
 	bool isFirst;
 	const std::string separator;
 	const std::string escapeSeq;

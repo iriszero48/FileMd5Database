@@ -11,6 +11,7 @@
 #include "FileMd5Database.h"
 #include "FileMd5DatabaseSerialization.h"
 #include "Convert.h"
+#include "String.h"
 
 #ifndef MacroWindows
 
@@ -297,6 +298,21 @@ int main(int argc, char* argv[])
 					std::cout << "->";
 					std::string line;
 					std::getline(std::cin, line);
+					static const auto matchFunc = [Interactive](std::vector<ModelRef>& fmd, const MatchMethod& method, const bool neg, const std::string& args, const bool help)
+					{
+						if (help)
+						{
+							std::cout << DataDesc() << " keyword";
+							return false;
+						}
+						const auto sp = args.find(' ');
+						const auto by = *ToData(args.substr(0, sp));
+						const auto kw = args.substr(sp + 1);
+						std::vector<ModelRef> res{};
+						ModelMatch(fmd, res, method, by, neg, kw);
+						Interactive(res);
+						return false;
+					};
 					std::unordered_map < std::string, std::function<bool(const std::string&, bool) >> ops
 					{
 						{"help",[&](const std::string& args = {}, const bool help = false)
@@ -349,8 +365,18 @@ int main(int argc, char* argv[])
 								std::cout << DataDesc();
 								return false;
 							}
-							const auto by = *ToData(args);
-							ModelSortBranch(fmd, by);
+							ModelSort(fmd, *ToData(args));
+							return false;
+						} },
+						{ "!sort",[&](const std::string& args = {}, const bool help = false)
+						{
+							if (help)
+							{
+								std::cout << DataDesc();
+								return false;
+							}
+							ModelSort(fmd, *ToData(args));
+							ModelReverse(fmd);
 							return false;
 						} },
 						{ "rev",[&](const std::string& args = {}, const bool help = false)
@@ -359,7 +385,7 @@ int main(int argc, char* argv[])
 							{
 								return false;
 							}
-							std::reverse(std::execution::par_unseq, fmd.begin(), fmd.end());
+							ModelReverse(fmd);
 							return false;
 						} },
 						{ "shuffle",[&](const std::string& args = {}, const bool help = false)
@@ -373,234 +399,20 @@ int main(int argc, char* argv[])
 							std::shuffle(fmd.begin(), fmd.end(), g);
 							return false;
 						} },
-						{ "regex",[&](const std::string& args = {}, const bool help = false)
-						{
-							if (help)
-							{
-								std::cout << DataDesc() << " keyword";
-								return false;
-							}
-							const auto sp = args.find(' ');
-							const auto by = *ToData(args.substr(0, sp));
-							std::vector<ModelRef> tmp(fmd.size());
-							if (by == Data::FileModificationTime) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(),[&, re = std::regex(args.substr(sp + 1))](const ModelRef& model) { return std::regex_match(std::string(model.Time), re) ? model : ModelRef(); });
-							else if (by == Data::Md5) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(),[&, re = std::regex(args.substr(sp + 1))](const ModelRef& model) { return std::regex_match(std::string(model.Md5), re) ? model : ModelRef(); });
-							else if (by == Data::Path) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(),[&, re = std::regex(args.substr(sp + 1))](const ModelRef& model) { return std::regex_match(std::string(model.Path), re) ? model : ModelRef(); });
-							else if (by == Data::Size) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(),[&, re = std::regex(args.substr(sp + 1))](const ModelRef& model) { return std::regex_match(Convert::ToString(model.Size), re) ? model : ModelRef(); });
-							const auto count = std::count_if(std::execution::par_unseq, tmp.begin(), tmp.end(), [](const ModelRef& model) { return model.Path.length() != 0; });
-							std::vector<ModelRef> res(count);
-							std::copy_if(std::execution::par_unseq, tmp.begin(), tmp.end(), res.begin(), [](const ModelRef& model) { return model.Path.length() != 0; });
-							tmp.clear();
-							tmp.shrink_to_fit();
-							Interactive(res);
-							return false;
-						} },
-						{ "!regex",[&](const std::string& args = {}, const bool help = false)
-						{
-							if (help)
-							{
-								std::cout << DataDesc() << " keyword";
-								return false;
-							}
-							const auto sp = args.find(' ');
-							const auto by = *ToData(args.substr(0, sp));
-							std::vector<ModelRef> tmp(fmd.size());
-							if (by == Data::FileModificationTime) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(),[&, re = std::regex(args.substr(sp + 1))](const ModelRef& model) { return !std::regex_match(std::string(model.Time), re) ? model : ModelRef(); });
-							else if (by == Data::Md5) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(),[&, re = std::regex(args.substr(sp + 1))](const ModelRef& model) { return !std::regex_match(std::string(model.Md5), re) ? model : ModelRef(); });
-							else if (by == Data::Path) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(),[&, re = std::regex(args.substr(sp + 1))](const ModelRef& model) { return !std::regex_match(std::string(model.Path), re) ? model : ModelRef(); });
-							else if (by == Data::Size) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(),[&, re = std::regex(args.substr(sp + 1))](const ModelRef& model) { return !std::regex_match(Convert::ToString(model.Size), re) ? model : ModelRef(); });
-							const auto count = std::count_if(std::execution::par_unseq, tmp.begin(), tmp.end(), [](const ModelRef& model) { return model.Path.length() != 0; });
-							std::vector<ModelRef> res(count);
-							std::copy_if(std::execution::par_unseq, tmp.begin(), tmp.end(), res.begin(), [](const ModelRef& model) { return model.Path.length() != 0; });
-							tmp.clear();
-							tmp.shrink_to_fit();
-							Interactive(res);
-							return false;
-						} },
-						{ "startwith",[&](const std::string& args = {}, const bool help = false)
-						{
-							if (help)
-							{
-								std::cout << DataDesc() << " keyword";
-								return false;
-							}
-							const auto sp = args.find(' ');
-							const auto by = *ToData(args.substr(0, sp));
-							const auto kw = args.substr(sp + 1);
-							std::vector<ModelRef> tmp(fmd.size());
-							if (by == Data::FileModificationTime) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return std::equal(kw.begin(), kw.end(), model.Time.begin()) ? model : ModelRef(); });
-							else if (by == Data::Md5) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return std::equal(kw.begin(), kw.end(), model.Md5.begin()) ? model : ModelRef(); });
-							else if (by == Data::Path) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return std::equal(kw.begin(), kw.end(), model.Path.begin()) ? model : ModelRef(); });
-							else if (by == Data::Size) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { const auto tmp = Convert::ToString(model.Size); return std::equal(kw.begin(), kw.end(), tmp.begin()) ? model : ModelRef(); });
-							const auto count = std::count_if(std::execution::par_unseq, tmp.begin(), tmp.end(), [](const ModelRef& model) { return model.Path.length() != 0; });
-							std::vector<ModelRef> res(count);
-							std::copy_if(std::execution::par_unseq, tmp.begin(), tmp.end(), res.begin(), [](const ModelRef& model) { return model.Path.length() != 0; });
-							tmp.clear();
-							tmp.shrink_to_fit();
-							Interactive(res);
-							return false;
-						} },
-						{ "!startwith",[&](const std::string& args = {}, const bool help = false)
-						{
-							if (help)
-							{
-								std::cout << DataDesc() << " keyword";
-								return false;
-							}
-							const auto sp = args.find(' ');
-							const auto by = *ToData(args.substr(0, sp));
-							const auto kw = args.substr(sp + 1);
-							std::vector<ModelRef> tmp(fmd.size());
-							if (by == Data::FileModificationTime) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return !std::equal(kw.begin(), kw.end(), model.Time.begin()) ? model : ModelRef(); });
-							else if (by == Data::Md5) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return !std::equal(kw.begin(), kw.end(), model.Md5.begin()) ? model : ModelRef(); });
-							else if (by == Data::Path) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return !std::equal(kw.begin(), kw.end(), model.Path.begin()) ? model : ModelRef(); });
-							else if (by == Data::Size) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { const auto tmp = Convert::ToString(model.Size); return !std::equal(kw.begin(), kw.end(), tmp.begin()) ? model : ModelRef(); });
-							const auto count = std::count_if(std::execution::par_unseq, tmp.begin(), tmp.end(), [](const ModelRef& model) { return model.Path.length() != 0; });
-							std::vector<ModelRef> res(count);
-							std::copy_if(std::execution::par_unseq, tmp.begin(), tmp.end(), res.begin(), [](const ModelRef& model) { return model.Path.length() != 0; });
-							tmp.clear();
-							tmp.shrink_to_fit();
-							Interactive(res);
-							return false;
-						} },
-						{ "contain",[&](const std::string& args = {}, const bool help = false)
-						{
-							if (help)
-							{
-								std::cout << DataDesc() << " keyword";
-								return false;
-							}
-							const auto sp = args.find(' ');
-							const auto by = *ToData(args.substr(0, sp));
-							const auto kw = args.substr(sp + 1);
-							std::vector<ModelRef> tmp(fmd.size());
-							if (by == Data::FileModificationTime) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return std::search(model.Time.begin(), model.Time.end(), std::boyer_moore_horspool_searcher(kw.begin(), kw.end())) != model.Time.end() ? model : ModelRef(); });
-							else if (by == Data::Md5) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return std::search(model.Md5.begin(), model.Md5.end(), std::boyer_moore_horspool_searcher(kw.begin(), kw.end())) != model.Md5.end() ? model : ModelRef(); });
-							else if (by == Data::Path) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return std::search(model.Path.begin(), model.Path.end(), std::boyer_moore_horspool_searcher(kw.begin(), kw.end())) != model.Path.end() ? model : ModelRef(); });
-							else if (by == Data::Size) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { const auto tmp = Convert::ToString(model.Size); return std::search(tmp.begin(), tmp.end(), std::boyer_moore_horspool_searcher(kw.begin(), kw.end())) != tmp.end() ? model : ModelRef(); });
-							const auto count = std::count_if(std::execution::par_unseq, tmp.begin(), tmp.end(), [](const ModelRef& model) { return model.Path.length() != 0; });
-							std::vector<ModelRef> res(count);
-							std::copy_if(std::execution::par_unseq, tmp.begin(), tmp.end(), res.begin(), [](const ModelRef& model) { return model.Path.length() != 0; });
-							tmp.clear();
-							tmp.shrink_to_fit();
-							Interactive(res);
-							return false;
-						} },
-						{ "!contain",[&](const std::string& args = {}, const bool help = false)
-						{
-							if (help)
-							{
-								std::cout << DataDesc() << " keyword";
-								return false;
-							}
-							const auto sp = args.find(' ');
-							const auto by = *ToData(args.substr(0, sp));
-							const auto kw = args.substr(sp + 1);
-							std::vector<ModelRef> tmp(fmd.size());
-							if (by == Data::FileModificationTime) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return std::search(model.Time.begin(), model.Time.end(), std::boyer_moore_horspool_searcher(kw.begin(), kw.end())) == model.Time.end() ? model : ModelRef(); });
-							else if (by == Data::Md5) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return std::search(model.Md5.begin(), model.Md5.end(), std::boyer_moore_horspool_searcher(kw.begin(), kw.end())) == model.Md5.end() ? model : ModelRef(); });
-							else if (by == Data::Path) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return std::search(model.Path.begin(), model.Path.end(), std::boyer_moore_horspool_searcher(kw.begin(), kw.end())) == model.Path.end() ? model : ModelRef(); });
-							else if (by == Data::Size) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { const auto tmp = Convert::ToString(model.Size); return std::search(tmp.begin(), tmp.end(), std::boyer_moore_horspool_searcher(kw.begin(), kw.end())) == tmp.end() ? model : ModelRef(); });
-							const auto count = std::count_if(std::execution::par_unseq, tmp.begin(), tmp.end(), [](const ModelRef& model) { return model.Path.length() != 0; });
-							std::vector<ModelRef> res(count);
-							std::copy_if(std::execution::par_unseq, tmp.begin(), tmp.end(), res.begin(), [](const ModelRef& model) { return model.Path.length() != 0; });
-							tmp.clear();
-							tmp.shrink_to_fit();
-							Interactive(res);
-							return false;
-						} },
-						{ "eq",[&](const std::string& args = {}, const bool help = false)
-						{
-							if (help)
-							{
-								std::cout << DataDesc() << " keyword";
-								return false;
-							}
-							const auto sp = args.find(' ');
-							const auto by = *ToData(args.substr(0, sp));
-							const auto kw = args.substr(sp + 1);
-							std::vector<ModelRef> tmp(fmd.size());
-							if (by == Data::FileModificationTime) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return std::equal(model.Time.begin(), model.Time.end(), kw.begin(), kw.end()) ? model : ModelRef(); });
-							else if (by == Data::Md5) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return std::equal(model.Md5.begin(), model.Md5.end(), kw.begin(), kw.end()) ? model : ModelRef(); });
-							else if (by == Data::Path) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return std::equal(model.Path.begin(), model.Path.end(), kw.begin(), kw.end()) ? model : ModelRef(); });
-							else if (by == Data::Size) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(),[&, v = Convert::FromString<uint64_t>(kw)](const ModelRef& model) { return v == model.Size ? model : ModelRef(); });
-							const auto count = std::count_if(std::execution::par_unseq, tmp.begin(), tmp.end(), [](const ModelRef& model) { return model.Path.length() != 0; });
-							std::vector<ModelRef> res(count);
-							std::copy_if(std::execution::par_unseq,tmp.begin(), tmp.end(), res.begin(), [](const ModelRef& model) { return model.Path.length() != 0; });
-							tmp.clear();
-							tmp.shrink_to_fit();
-							Interactive(res);
-							return false;
-						} },
-						{ "!eq",[&](const std::string& args = {}, const bool help = false)
-						{
-							if (help)
-							{
-								std::cout << DataDesc() << " keyword";
-								return false;
-							}
-							const auto sp = args.find(' ');
-							const auto by = *ToData(args.substr(0, sp));
-							const auto kw = args.substr(sp + 1);
-							std::vector<ModelRef> tmp(fmd.size());
-							if (by == Data::FileModificationTime) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return !std::equal(model.Time.begin(), model.Time.end(), kw.begin(), kw.end()) ? model : ModelRef(); });
-							else if (by == Data::Md5) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return !std::equal(model.Md5.begin(), model.Md5.end(), kw.begin(), kw.end()) ? model : ModelRef(); });
-							else if (by == Data::Path) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return !std::equal(model.Path.begin(), model.Path.end(), kw.begin(), kw.end()) ? model : ModelRef(); });
-							else if (by == Data::Size) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(),[&, v = Convert::FromString<uint64_t>(kw)](const ModelRef& model) { return v != model.Size ? model : ModelRef(); });
-							const auto count = std::count_if(std::execution::par_unseq, tmp.begin(), tmp.end(), [](const ModelRef& model) { return model.Path.length() != 0; });
-							std::vector<ModelRef> res(count);
-							std::copy_if(std::execution::par_unseq,tmp.begin(), tmp.end(), res.begin(), [](const ModelRef& model) { return model.Path.length() != 0; });
-							tmp.clear();
-							tmp.shrink_to_fit();
-							Interactive(res);
-							return false;
-						} },
-						{ "lt",[&](const std::string& args = {}, const bool help = false)
-						{
-							if (help)
-							{
-								std::cout << DataDesc() << " keyword";
-								return false;
-							}
-							const auto sp = args.find(' ');
-							const auto by = *ToData(args.substr(0, sp));
-							const auto kw = args.substr(sp + 1);
-							std::vector<ModelRef> tmp(fmd.size());
-							if (by == Data::FileModificationTime) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return model.Time < kw ? model : ModelRef(); });
-							else if (by == Data::Md5) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return model.Time < kw ? model : ModelRef(); });
-							else if (by == Data::Path) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return model.Time < kw ? model : ModelRef(); });
-							else if (by == Data::Size) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(),[&, v = Convert::FromString<uint64_t>(kw)](const ModelRef& model) { return model.Size < v ? model : ModelRef(); });
-							const auto count = std::count_if(std::execution::par_unseq, tmp.begin(), tmp.end(), [](const ModelRef& model) { return model.Path.length() != 0; });
-							std::vector<ModelRef> res(count);
-							std::copy_if(std::execution::par_unseq,tmp.begin(), tmp.end(), res.begin(), [](const ModelRef& model) { return model.Path.length() != 0; });
-							tmp.clear();
-							tmp.shrink_to_fit();
-							Interactive(res);
-							return false;
-						} },
-						{ "gt",[&](const std::string& args = {}, const bool help = false)
-						{
-							if (help)
-							{
-								std::cout << DataDesc() << " keyword";
-								return false;
-							}
-							const auto sp = args.find(' ');
-							const auto by = *ToData(args.substr(0, sp));
-							const auto kw = args.substr(sp + 1);
-							std::vector<ModelRef> tmp(fmd.size());
-							if (by == Data::FileModificationTime) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return model.Time > kw ? model : ModelRef(); });
-							else if (by == Data::Md5) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return model.Time > kw ? model : ModelRef(); });
-							else if (by == Data::Path) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(), [&](const ModelRef& model) { return model.Time > kw ? model : ModelRef(); });
-							else if (by == Data::Size) std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), tmp.begin(),[&, v = Convert::FromString<uint64_t>(kw)](const ModelRef& model) { return model.Size > v ? model : ModelRef(); });
-							const auto count = std::count_if(std::execution::par_unseq, tmp.begin(), tmp.end(), [](const ModelRef& model) { return model.Path.length() != 0; });
-							std::vector<ModelRef> res(count);
-							std::copy_if(std::execution::par_unseq,tmp.begin(), tmp.end(), res.begin(), [](const ModelRef& model) { return model.Path.length() != 0; });
-							tmp.clear();
-							tmp.shrink_to_fit();
-							Interactive(res);
-							return false;
-						} },
+						{  "regex"    , [&](const std::string& args = {}, const bool help = false){ return matchFunc(fmd, MatchMethod::Regex,     false, args, help); } },
+						{ "!regex"    , [&](const std::string& args = {}, const bool help = false){ return matchFunc(fmd, MatchMethod::Regex,     true , args, help); } },
+						{  "startwith", [&](const std::string& args = {}, const bool help = false){ return matchFunc(fmd, MatchMethod::StartWith, false, args, help); } },
+						{ "!startwith", [&](const std::string& args = {}, const bool help = false){ return matchFunc(fmd, MatchMethod::StartWith, true , args, help); } },
+						{  "endwith"  , [&](const std::string& args = {}, const bool help = false){ return matchFunc(fmd, MatchMethod::EndWith,   false, args, help); } },
+						{ "!endwith"  , [&](const std::string& args = {}, const bool help = false){ return matchFunc(fmd, MatchMethod::EndWith,   true , args, help); } },
+						{  "contain"  , [&](const std::string& args = {}, const bool help = false){ return matchFunc(fmd, MatchMethod::Contain,   false, args, help); } },
+						{ "!contain"  , [&](const std::string& args = {}, const bool help = false){ return matchFunc(fmd, MatchMethod::Contain,   true , args, help); } },
+						{  "eq"       , [&](const std::string& args = {}, const bool help = false){ return matchFunc(fmd, MatchMethod::Eq,        false, args, help); } },
+						{ "!eq"       , [&](const std::string& args = {}, const bool help = false){ return matchFunc(fmd, MatchMethod::Eq,        true , args, help); } },
+						{  "lt"       , [&](const std::string& args = {}, const bool help = false){ return matchFunc(fmd, MatchMethod::Lt,        false, args, help); } },
+						{ "!lt"       , [&](const std::string& args = {}, const bool help = false){ return matchFunc(fmd, MatchMethod::Lt,        true , args, help); } },
+						{  "gt"       , [&](const std::string& args = {}, const bool help = false){ return matchFunc(fmd, MatchMethod::Gt,        false, args, help); } },
+						{ "!gt"       , [&](const std::string& args = {}, const bool help = false){ return matchFunc(fmd, MatchMethod::Gt,        true , args, help); } },
 						{ "maxlength",[&](const std::string& args = {}, const bool help = false)
 						{
 							if (help)
@@ -713,6 +525,20 @@ int main(int argc, char* argv[])
 							{
 								std::cout << p << std::string(maxPathLen - p.length(), ' ') << " | " << (m.empty() ? std::string(32, ' ') : m) << " | " << std::string(maxSizeLen - s.length(), ' ') << s << " | " << (t.empty() ? std::string(19, ' ') : t) << "\n";
 							}
+							return false;
+						} },
+						{ "device",[&](const std::string& args = {}, const bool help = false)
+						{
+							if (help)
+							{
+								return false;
+							}
+							std::vector<std::string_view> devices(fmd.size());
+							std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), devices.begin(), [](const ModelRef& model) { return model.Path.substr(0, model.Path.find(':')); });
+							const auto last = std::unique(std::execution::par_unseq, devices.begin(), devices.end());
+							devices.erase(last, devices.end());
+							devices.shrink_to_fit();
+							std::copy(devices.begin(), devices.end(), std::ostream_iterator<std::string_view>(std::cout, "\n"));
 							return false;
 						} },
 					};
