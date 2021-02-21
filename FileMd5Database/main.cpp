@@ -538,6 +538,7 @@ int main(int argc, char* argv[])
 							const auto last = std::unique(std::execution::par_unseq, devices.begin(), devices.end());
 							devices.erase(last, devices.end());
 							devices.shrink_to_fit();
+							std::sort(devices.begin(), devices.end());
 							std::copy(devices.begin(), devices.end(), std::ostream_iterator<std::string_view>(std::cout, "\n"));
 							return false;
 						} },

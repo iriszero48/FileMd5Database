@@ -320,7 +320,7 @@ struct BaseMatchImpl
 	template<typename V>
 	bool operator()(const V& v) const
 	{
-		return SubMatch()(Keyword, v);
+		return SubMatch()(v, Keyword);
 	}
 	
 	TKeyword Keyword;
