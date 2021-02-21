@@ -313,7 +313,7 @@ int main(int argc, char* argv[])
 						Interactive(res);
 						return false;
 					};
-					std::unordered_map < std::string, std::function<bool(const std::string&, bool) >> ops
+					std::unordered_map<std::string, std::function<bool(const std::string&, bool)>> ops
 					{
 						{"help",[&](const std::string& args = {}, const bool help = false)
 						{
@@ -388,15 +388,16 @@ int main(int argc, char* argv[])
 							ModelReverse(fmd);
 							return false;
 						} },
-						{ "shuffle",[&](const std::string& args = {}, const bool help = false)
+						{ "sample",[&](const std::string& args = {}, const bool help = false)
 						{
 							if (help)
 							{
+								std::cout << "int";
 								return false;
 							}
-							std::random_device rd;
-							std::mt19937 g(rd());
-							std::shuffle(fmd.begin(), fmd.end(), g);
+							std::vector<ModelRef> res{};
+							std::sample(fmd.begin(), fmd.end(), std::back_inserter(res), Convert::FromString<uint64_t>(args), std::random_device{});
+							Interactive(res);
 							return false;
 						} },
 						{  "regex"    , [&](const std::string& args = {}, const bool help = false){ return matchFunc(fmd, MatchMethod::Regex,     false, args, help); } },
@@ -496,35 +497,9 @@ int main(int argc, char* argv[])
 								std::cout << "int";
 								return false;
 							}
-							const auto limit = Convert::FromString<uint64_t>(args);
-							if (fmd.empty()) return false;
-							std::vector<ModelStr> res{};
-							std::for_each(fmd.begin(), fmd.end(),[&, i = static_cast<uint64_t>(0)](const ModelRef& model) mutable
-							{
-								if (i < limit)
-								{
-									++i;
-									ModelStr mod;
-									try
-									{
-										mod.Path = std::filesystem::u8path(model.Path).string();
-									}
-									catch (...)
-									{
-										mod.Path = model.Path;
-									}
-									mod.Md5 = model.Md5;
-									mod.Size = Convert::ToString(model.Size);
-									mod.Time = model.Time;
-									res.emplace_back(mod);
-								}
-							});
-							const auto maxPathLen = std::max_element(res.begin(), res.end(), [](const ModelStr& a, const ModelStr& b) { return std::less<>()(a.Path.length(), b.Path.length()); })->Path.length();
-							const auto maxSizeLen = std::max_element(res.begin(), res.end(), [](const ModelStr& a, const ModelStr& b) { return std::less<>()(a.Size.length(), b.Size.length()); })->Size.length();
-							for (const auto& [p, m, s, t] : res)
-							{
-								std::cout << p << std::string(maxPathLen - p.length(), ' ') << " | " << (m.empty() ? std::string(32, ' ') : m) << " | " << std::string(maxSizeLen - s.length(), ' ') << s << " | " << (t.empty() ? std::string(19, ' ') : t) << "\n";
-							}
+							std::vector<ModelRef> out{};
+							std::copy_n(fmd.begin(), args.empty() ? fmd.size() : std::min(fmd.size(), Convert::FromString<uint64_t>(args)), std::back_inserter(out));
+							ModelPrinter(out);
 							return false;
 						} },
 						{ "device",[&](const std::string& args = {}, const bool help = false)
@@ -548,7 +523,7 @@ int main(int argc, char* argv[])
 					try
 #endif
 					{
-						if (ops.at(line.substr(0, sp))(std::filesystem::path(line.substr(sp + 1)).u8string(), false))
+						if (ops.at(line.substr(0, sp))(std::filesystem::path(sp == std::string::npos ? std::string{} : line.substr(sp + 1)).u8string(), false))
 						{
 							Stack.Pop();
 							return true;

@@ -223,91 +223,33 @@ void FileMd5DatabaseQuery(const std::vector<Model>& fmdRaw, const MatchMethod& m
 	puts(("load " + Convert::ToString(fmdRaw.size())).c_str());
 	std::vector<ModelRef> fmd(fmdRaw.size());
 	std::transform(std::execution::par_unseq, fmdRaw.begin(), fmdRaw.end(), fmd.begin(), [](const Model& model) { return ModelRef(std::string_view(model.Path.str, model.Path.size), std::string_view(model.Md5.str, model.Md5.size), model.Size, std::string_view(model.Time.str, model.Time.size)); });
-	
+	std::vector<ModelRef> res(fmd.size());
+	ModelMatch(fmd, res, matchMethod, queryData, false, keyword);
+	ModelSort(res, sortBy);
+	if (desc) ModelReverse(res);
+	std::vector<ModelRef> out{};
+	std::copy_n(res.begin(), std::min(limit, res.size()), std::back_inserter(out));
+	ModelPrinter(out);
+}
 
-	
-#define QueryImpl(cmp, matcher)\
-	{\
-		std::sort(std::execution::par_unseq, fmd.begin(), fmd.end(), [](const ModelRef& a, const ModelRef& b)\
-		{\
-			return cmp;\
-		}); \
-		std::atomic_uint64_t count = 0; \
-		std::copy_if(fmd.begin(), fmd.end(), std::back_inserter(res), [&](const ModelRef& model)\
-		{\
-				if (count.load() < limit)\
-				{\
-					if (matcher)\
-					{\
-						++count; \
-						return true; \
-					}\
-				}\
-					return false; \
-		}); \
-	}
-
-#define IntCmp(member) std::less<>()((a).member, (b).member)
-#define StringCmp(member) std::lexicographical_compare((a).member.begin(), (a).member.end(), (b).member.begin(), (b).member.end())
-#define IntMatcher(member) Convert::ToString(model.member) == keyword
-#define StringContainMatcher(member) std::search(model.member.begin(), model.member.end(), std::boyer_moore_horspool_searcher(keyword.begin(), keyword.end())) != model.member.end()
-#define StringStartWithMatcher(member) std::equal(keyword.begin(), keyword.end(), model.member.begin())
-#define StringRegexMatcher(member) std::regex_match(std::string(model.member), std::regex(keyword))
-
-#define DescBranch(cmpFull, matchFull)\
-	{\
-		if (desc)\
-		{\
-			QueryImpl(!(cmpFull), matchFull)\
-		}\
-		else\
-		{\
-			QueryImpl(cmpFull, matchFull)\
-		}\
-	}
-
-#define MatchMethodBranch(cmpFull, member)\
-	{\
-		if (matchMethod == MatchMethod::Contain) DescBranch(cmpFull, StringContainMatcher(member))\
-		else if (matchMethod == MatchMethod::StartWith) DescBranch(cmpFull, StringStartWithMatcher(member))\
-		else if (matchMethod == MatchMethod::Regex) DescBranch(cmpFull, StringRegexMatcher(member))\
-	}
-	
-#define QueryDataBranch(cmpFull)\
-	{\
-		if (queryData == Data::Time) MatchMethodBranch(cmpFull, Time)\
-		else if (queryData == Data::Md5) MatchMethodBranch(cmpFull, Md5)\
-		else if (queryData == Data::Path) MatchMethodBranch(cmpFull, Path)\
-		else if (queryData == Data::Size) DescBranch(cmpFull, IntMatcher(Size))\
-	}
-	
-	std::vector<ModelRef> res{};
-	
-	if (sortBy == Data::Time) QueryDataBranch(StringCmp(Time))
-	else if (sortBy == Data::Md5) QueryDataBranch(StringCmp(Md5))
-	else if (sortBy == Data::Path) QueryDataBranch(StringCmp(Path))
-	else if (sortBy == Data::Size) QueryDataBranch(IntCmp(Size))
-	
+void ModelPrinter(const std::vector<ModelRef>& fmd)
+{
 	std::vector<ModelStr> out{};
-	std::for_each(res.begin(), res.end(), [&, i = static_cast<uint64_t>(0)](const ModelRef& model) mutable
+	std::transform(fmd.begin(), fmd.end(), std::back_inserter(out), [](const ModelRef& model)
 	{
-		if (i < limit)
+		ModelStr mod;
+		try
 		{
-			++i;
-			ModelStr mod;
-			try
-			{
-				mod.Path = std::filesystem::u8path(model.Path).string();
-			}
-			catch (...)
-			{
-				mod.Path = model.Path;
-			}
-			mod.Md5 = model.Md5;
-			mod.Size = Convert::ToString(model.Size);
-			mod.Time = model.Time;
-			out.emplace_back(mod);
+			mod.Path = std::filesystem::u8path(model.Path).string();
 		}
+		catch (...)
+		{
+			mod.Path = model.Path;
+		}
+		mod.Md5 = model.Md5;
+		mod.Size = Convert::ToString(model.Size);
+		mod.Time = model.Time;
+		return mod;
 	});
 	const auto maxPathLen = std::max_element(out.begin(), out.end(), [](const ModelStr& a, const ModelStr& b) { return std::less<>()(a.Path.length(), b.Path.length()); })->Path.length();
 	const auto maxSizeLen = std::max_element(out.begin(), out.end(), [](const ModelStr& a, const ModelStr& b) { return std::less<>()(a.Size.length(), b.Size.length()); })->Size.length();

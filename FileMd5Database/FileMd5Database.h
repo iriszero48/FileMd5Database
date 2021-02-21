@@ -176,24 +176,6 @@ void ModelReverse(Fmd& fmd)
 	std::reverse(std::execution::par_unseq, fmd.begin(), fmd.end());
 }
 
-template<MatchMethod Method, typename Fmd>
-constexpr void ModelMatchBranchImpl(Fmd& fmd, const Data& sortBy)
-{
-	if (sortBy == Data::Time) ModelSort(fmd, ModelStringCmp<Data::Time>());
-	else if (sortBy == Data::Md5) ModelSort(fmd, ModelStringCmp<Data::Md5>());
-	else if (sortBy == Data::Path) ModelSort(fmd, ModelStringCmp<Data::Path>());
-	else if (sortBy == Data::Size) ModelSort(fmd, ModelIntCmp<Data::Size>());
-}
-
-template<MatchMethod Method, typename Fmd>
-constexpr void ModelMatchBranch(Fmd& fmd, const Data& sortBy)
-{
-	if (sortBy == Data::Time) ModelSort(fmd, ModelStringCmp<Data::Time>());
-	else if (sortBy == Data::Md5) ModelSort(fmd, ModelStringCmp<Data::Md5>());
-	else if (sortBy == Data::Path) ModelSort(fmd, ModelStringCmp<Data::Path>());
-	else if (sortBy == Data::Size) ModelSort(fmd, ModelIntCmp<Data::Size>());
-}
-
 struct RegexMatch
 {
 	explicit RegexMatch(const std::string& keyword) : Keyword(keyword) { }
@@ -395,6 +377,8 @@ void ModelMatch(const T& data, std::vector<ModelRef>& result, const MatchMethod&
 	else if (matchMethod == MatchMethod::Gt       ) ModelMatchImpl<MatchMethod::Gt       >(data, result, matchData, neg, keyword);
 	else static_assert(true, "not impl");
 }
+
+void ModelPrinter(const std::vector<ModelRef>& fmd);
 
 void FileMd5DatabaseInit(const LogLevel& level = LogLevel::Info, const std::filesystem::path& file = {}, bool console = true);
 
