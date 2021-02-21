@@ -159,7 +159,8 @@ namespace ArgumentsParse
 			}
 			catch (const std::exception& e)
 			{
-				__Arguments_ThrowEx__(args.at(arg)->GetName(), ": ", e.what());
+				const auto name = args.at(arg)->GetName();
+				__Arguments_ThrowEx__(name.empty() ? "(Default)" : name, ": ", e.what());
 			}
 		}
 
