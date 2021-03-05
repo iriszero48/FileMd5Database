@@ -510,11 +510,78 @@ int main(int argc, char* argv[])
 							}
 							std::vector<std::string_view> devices(fmd.size());
 							std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), devices.begin(), [](const ModelRef& model) { return model.Path.substr(0, model.Path.find(':')); });
+							std::sort(std::execution::par_unseq, devices.begin(), devices.end());
 							const auto last = std::unique(std::execution::par_unseq, devices.begin(), devices.end());
 							devices.erase(last, devices.end());
 							devices.shrink_to_fit();
 							std::sort(devices.begin(), devices.end());
 							std::copy(devices.begin(), devices.end(), std::ostream_iterator<std::string_view>(std::cout, "\n"));
+							return false;
+						} },
+						{ "unique",[&](const std::string& args = {}, const bool help = false)
+						{
+							if (help)
+							{
+								return false;
+							}
+							std::vector<ModelRef> res(fmd.size());
+							std::copy(std::execution::par_unseq, fmd.begin(), fmd.end(), res.begin());
+							ModelSort(res, Data::Md5);
+							const auto last = std::unique(std::execution::par_unseq, res.begin(), res.end(), [](const ModelRef& a, const ModelRef& b) { return a.Md5 == b.Md5; });
+							res.erase(last, res.end());
+							res.shrink_to_fit();
+							Interactive(res);
+							return false;                                                                                                                                                                                                                                               
+						} },                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+						{ "duplicate",[&](const std::string& args = {}, const bool help = false)
+						{                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
+							if (help)
+							{
+								return false;
+							}
+							std::vector<ModelRef> res{};
+							[&]()
+							{
+								std::vector<ModelRef> resTmp{};
+								[&]()
+								{
+									std::unordered_map<std::string_view, uint64_t> md5Freqs{};
+									[&]()
+									{
+										std::vector<std::string_view> md5s(fmd.size());
+										std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), md5s.begin(), [](const ModelRef& model) { return model.Md5; });
+										std::sort(std::execution::par_unseq, md5s.begin(), md5s.end());
+										const auto last = std::unique(std::execution::par_unseq, md5s.begin(), md5s.end());
+										md5s.erase(last, md5s.end());
+										md5s.shrink_to_fit();
+										for (auto md5 : md5s)
+										{
+											md5Freqs.emplace(md5, 0);
+										}
+									}();
+									for (const auto& model : fmd)
+									{
+										md5Freqs[model.Md5] = md5Freqs.at(model.Md5) + 1;
+									}
+									for (auto it = md5Freqs.begin(); it != md5Freqs.end();)
+									{
+										if (it->second == 1 || it->first.size() == 0)
+										{
+											it = md5Freqs.erase(it);
+										}
+										else
+										{
+											++it;
+										}
+									}
+									resTmp.resize(fmd.size());
+									std::transform(std::execution::par_unseq, fmd.begin(), fmd.end(), resTmp.begin(), [&](const ModelRef& model) { return md5Freqs.find(model.Md5) == md5Freqs.end() ? ModelRef{} : model; });
+								}();
+								const auto isNil = [](const ModelRef& model) { return model.Path.size() != 0; };
+								res.resize(std::count_if(std::execution::par_unseq, resTmp.begin(), resTmp.end(), isNil));
+								std::copy_if(std::execution::par_unseq, resTmp.begin(), resTmp.end(), res.begin(), isNil);
+							}();
+							Interactive(res);
 							return false;
 						} },
 					};

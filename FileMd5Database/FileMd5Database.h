@@ -164,10 +164,10 @@ constexpr auto ModelSortImpl(Fmd& fmd, const Cmp& cmp)
 template<typename Fmd>
 constexpr void ModelSort(Fmd& fmd, const Data& sortBy)
 {
-	if (sortBy == Data::Time) ModelSortImpl(fmd, ModelStringCmp<Data::Time>());
-	else if (sortBy == Data::Md5) ModelSortImpl(fmd, ModelStringCmp<Data::Md5>());
+	if      (sortBy == Data::Time) ModelSortImpl(fmd, ModelStringCmp<Data::Time>());
+	else if (sortBy == Data::Md5 ) ModelSortImpl(fmd, ModelStringCmp<Data::Md5 >());
 	else if (sortBy == Data::Path) ModelSortImpl(fmd, ModelStringCmp<Data::Path>());
-	else if (sortBy == Data::Size) ModelSortImpl(fmd, ModelIntCmp<Data::Size>());
+	else if (sortBy == Data::Size) ModelSortImpl(fmd, ModelIntCmp   <Data::Size>());
 }
 
 template<typename Fmd>
@@ -359,9 +359,9 @@ template<MatchMethod Method, typename T>
 void ModelMatchImpl(const T& data, std::vector<ModelRef>& result, const Data& matchData, const bool neg, const std::string& keyword)
 {
 	if      (matchData == Data::Time) ModelMatchImplImpl<Method,Data::Time>(data, result, neg, keyword);
-	else if (matchData == Data::Md5                 ) ModelMatchImplImpl<Method,Data::Md5                 >(data, result, neg, keyword);
-	else if (matchData == Data::Path                ) ModelMatchImplImpl<Method,Data::Path                >(data, result, neg, keyword);
-	else if (matchData == Data::Size                ) ModelMatchImplImpl<Method,Data::Size                >(data, result, neg, keyword);
+	else if (matchData == Data::Md5 ) ModelMatchImplImpl<Method,Data::Md5 >(data, result, neg, keyword);
+	else if (matchData == Data::Path) ModelMatchImplImpl<Method,Data::Path>(data, result, neg, keyword);
+	else if (matchData == Data::Size) ModelMatchImplImpl<Method,Data::Size>(data, result, neg, keyword);
 	else static_assert(true, "not impl");
 }
 
