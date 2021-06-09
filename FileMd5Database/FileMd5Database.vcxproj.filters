@@ -27,13 +27,13 @@
     <ClCompile Include="FileMd5Database.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Md5.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="CSV.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="Time.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Cryptography.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -48,9 +48,6 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Bit.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Md5.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="String.h">
@@ -71,8 +68,14 @@
     <ClInclude Include="Convert.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="Cryptography.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ClassDiagram.cd" />
   </ItemGroup>
 </Project>

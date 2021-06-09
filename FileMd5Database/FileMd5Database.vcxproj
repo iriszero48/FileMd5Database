@@ -148,28 +148,31 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Arguments.cpp" />
+    <ClCompile Include="Cryptography.cpp" />
     <ClCompile Include="CSV.cpp" />
     <ClCompile Include="FileMd5Database.cpp" />
     <ClCompile Include="FileMd5DatabaseSerialization.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Md5.cpp" />
     <ClCompile Include="Time.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Arguments.h" />
     <ClInclude Include="Bit.h" />
     <ClInclude Include="Convert.h" />
+    <ClInclude Include="Cryptography.h" />
     <ClInclude Include="CSV.h" />
     <ClInclude Include="FileMd5Database.h" />
     <ClInclude Include="FileMd5DatabaseSerialization.h" />
     <ClInclude Include="Macro.h" />
-    <ClInclude Include="Md5.h" />
     <ClInclude Include="String.h" />
     <ClInclude Include="Thread.h" />
     <ClInclude Include="Time.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ClassDiagram.cd" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

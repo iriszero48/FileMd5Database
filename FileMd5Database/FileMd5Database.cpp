@@ -8,7 +8,7 @@
 
 #include "Convert.h"
 #include "CSV.h"
-#include "Md5.h"
+#include "Cryptography.h"
 #include "String.h"
 #include "Time.h"
 #include "Macro.h"
@@ -158,7 +158,20 @@ void FileMd5DatabaseAdd(const std::string& deviceName, const std::filesystem::pa
 		}
 		else
 		{
-			md5 = Md5File(fixPath);
+			try
+			{
+				std::ifstream fs(fixPath, std::ios::in | std::ios::binary);
+				const auto buffer = std::make_unique<char[]>(4096);
+				fs.rdbuf()->pubsetbuf(buffer.get(), 4096);
+				
+				Cryptography::Md5 md5Gen{};
+				md5Gen.Append(fs);
+				md5 = md5Gen.HexDigest();
+			}
+			catch (const std::exception& ex)
+			{
+				LogErr(file, ex.what());
+			}
 		}
 		if (Log.Level >= LogLevel::Debug) Log.Write<LogLevel::Debug>("-> ", md5);
 		const auto modificationTime = FileLastModified(fixPath);
